@@ -230,6 +230,9 @@ import {
   getIsActive,
   getIsNotActive,
   getAllCloths,
+  getClothById, // ✅ ESTA LÍNEA
+  createCloth,
+  updateCloth,
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
@@ -283,7 +286,11 @@ const formCloth = ref({
 
 const fetchCloths = async () => {
   try {
-    cloths.value = await getAllCloths();
+    const data = await getAllCloths();
+    cloths.value = data.sort((a, b) => {
+      // Primero las activas (true > false)
+      return (b.isActive === true ? 1 : 0) - (a.isActive === true ? 1 : 0);
+    });
   } catch (e) {
     toast.error("Error al cargar las telas");
   }
@@ -301,7 +308,7 @@ const openCreateModal = () => {
     isActive: true,
   };
   loadCategoriesAndSuppliers();
-  showFormModal.value = 1;
+  showFormModal.value = true;
 };
 
 const openEditModal = async (id: number) => {
@@ -364,33 +371,40 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
+    let result = await getAllCloths();
+
+    // Filtro por nombre (si coincide exactamente)
     if (filters.value.name) {
-      cloths.value = [await getClothByName(filters.value.name)];
-      return;
+      result = result.filter(
+        (cloth: any) =>
+          cloth.name.toLowerCase() === filters.value.name.toLowerCase()
+      );
     }
 
+    // Filtro por categoría
     if (filters.value.categoryId) {
-      cloths.value = await getClothByCategory(Number(filters.value.categoryId));
-      return;
+      result = result.filter(
+        (cloth: any) =>
+          cloth.category?.categoryId === Number(filters.value.categoryId)
+      );
     }
 
+    // Filtro por proveedor
     if (filters.value.supplierId) {
-      cloths.value = await getClothBySupplier(filters.value.supplierId);
-      return;
+      result = result.filter(
+        (cloth: any) => cloth.supplier?.supplierId === filters.value.supplierId
+      );
     }
 
+    // Filtro por estado activo/inactivo
     if (filters.value.status === "active") {
-      cloths.value = await getIsActive();
-      return;
+      result = result.filter((cloth: any) => cloth.isActive === true);
+    } else if (filters.value.status === "inactive") {
+      result = result.filter((cloth: any) => cloth.isActive === false);
     }
 
-    if (filters.value.status === "inactive") {
-      cloths.value = await getIsNotActive();
-      return;
-    }
-
-    // Si no hay filtros aplicados
-    fetchCloths();
+    // Asignar resultados filtrados
+    cloths.value = result;
   } catch (e) {
     toast.error("Error al aplicar filtros");
   }
