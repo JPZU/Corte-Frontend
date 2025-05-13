@@ -138,13 +138,13 @@
           type="text"
           class="form-control"
           v-model="filters.name"
-          placeholder="Buscar por nombre"
+          placeholder="Buscar por nombre o ID"
         />
       </div>
 
       <div class="col-md-3">
         <select v-model="filters.categoryId" class="form-select">
-          <option value="">Todas las categorías</option>
+          <option value="">-- Filtrar por categorías --</option>
           <option
             v-for="cat in categories"
             :key="cat.categoryId"
@@ -157,7 +157,7 @@
 
       <div class="col-md-3">
         <select v-model="filters.supplierId" class="form-select">
-          <option value="">Todos los proveedores</option>
+          <option value="">-- Filtrar por proveedores --</option>
           <option
             v-for="sup in suppliers"
             :key="sup.supplierId"
@@ -170,7 +170,7 @@
 
       <div class="col-md-2">
         <select v-model="filters.status" class="form-select">
-          <option value="">Todos</option>
+          <option value="">-- Filtrar por estado --</option>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
         </select>
@@ -375,10 +375,13 @@ const applyFilters = async () => {
 
     // Filtro por nombre (si coincide exactamente)
     if (filters.value.name) {
-      result = result.filter(
-        (cloth: any) =>
-          cloth.name.toLowerCase() === filters.value.name.toLowerCase()
-      );
+      const search = filters.value.name.toLowerCase();
+      result = result.filter((cloth: any) => {
+        const nameMatch = cloth.name.toLowerCase().includes(search);
+        const idMatch =
+          !isNaN(Number(search)) && cloth.clothId === Number(search);
+        return nameMatch || idMatch;
+      });
     }
 
     // Filtro por categoría
