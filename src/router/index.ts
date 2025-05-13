@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import LoginView from "@/views/LoginView.vue";
 import HomeView from "@/views/HomeView.vue";
 import UsersView from "@/views/UsersView.vue";
+import ClothsView from "@/views/ClothsView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -22,6 +23,15 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       roles: ["SUPER_ADMIN", "ADMIN", "VIEWER"], // EDITOR no entra aquí
+    },
+  },
+  {
+    path: "/cloths",
+    name: "Cloths",
+    component: ClothsView,
+    meta: {
+      requiresAuth: true,
+      roles: ["SUPER_ADMIN", "ADMIN", "VIEWER", "EDITOR"],
     },
   },
   // Puedes ir agregando más rutas aquí

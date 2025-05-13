@@ -6,6 +6,7 @@ export const useAuthStore = defineStore("auth", {
     role: localStorage.getItem("role") || "",
     name: localStorage.getItem("name") || "",
     email: localStorage.getItem("email") || "",
+    userId: Number(localStorage.getItem("userId")) || 0, // ✅ nuevo campo
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
@@ -16,18 +17,22 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("token", token);
     },
     setUserData({
+      userId,
       role,
       name,
       email,
     }: {
+      userId: number;
       role: string;
       name: string;
       email: string;
     }) {
+      this.userId = userId;
       this.role = role;
       this.name = name;
       this.email = email;
 
+      localStorage.setItem("userId", userId.toString());
       localStorage.setItem("role", role);
       localStorage.setItem("name", name);
       localStorage.setItem("email", email);

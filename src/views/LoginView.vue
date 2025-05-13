@@ -53,6 +53,7 @@ const handleLogin = async () => {
       return;
     }
     authStore.setUserData({
+      userId: profile.userId,
       role: profile.role,
       name: profile.name,
       email: profile.email,
