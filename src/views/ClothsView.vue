@@ -132,6 +132,57 @@
         Crear Tela
       </button>
     </div>
+    <div class="row g-2 mb-4">
+      <div class="col-md-3">
+        <input
+          type="text"
+          class="form-control"
+          v-model="filters.name"
+          placeholder="Buscar por nombre"
+        />
+      </div>
+
+      <div class="col-md-3">
+        <select v-model="filters.categoryId" class="form-select">
+          <option value="">Todas las categorías</option>
+          <option
+            v-for="cat in categories"
+            :key="cat.categoryId"
+            :value="cat.categoryId"
+          >
+            {{ cat.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <select v-model="filters.supplierId" class="form-select">
+          <option value="">Todos los proveedores</option>
+          <option
+            v-for="sup in suppliers"
+            :key="sup.supplierId"
+            :value="sup.supplierId"
+          >
+            {{ sup.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <select v-model="filters.status" class="form-select">
+          <option value="">Todos</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      </div>
+
+      <div class="col-md-1 d-flex gap-1">
+        <button class="btn btn-primary w-100" @click="applyFilters">
+          Buscar
+        </button>
+        <button class="btn btn-secondary w-100" @click="resetFilters">✖</button>
+      </div>
+    </div>
 
     <div class="row g-3">
       <div class="col-md-4" v-for="cloth in cloths" :key="cloth.clothId">
@@ -173,10 +224,12 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "@/store/auth";
 import { useToast } from "vue-toastification";
 import {
+  getClothByName,
+  getClothBySupplier,
+  getClothByCategory,
+  getIsActive,
+  getIsNotActive,
   getAllCloths,
-  getClothById,
-  createCloth,
-  updateCloth,
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
@@ -192,6 +245,13 @@ const loadCategoriesAndSuppliers = async () => {
     toast.error("Error al cargar categorías o proveedores");
   }
 };
+
+const filters = ref({
+  name: "",
+  categoryId: "",
+  supplierId: "",
+  status: "", // "active", "inactive"
+});
 
 const showDetailModal = ref(false);
 const selectedCloth = ref<any>(null);
@@ -302,5 +362,52 @@ const submitCloth = async () => {
   }
 };
 
-onMounted(fetchCloths);
+const applyFilters = async () => {
+  try {
+    if (filters.value.name) {
+      cloths.value = [await getClothByName(filters.value.name)];
+      return;
+    }
+
+    if (filters.value.categoryId) {
+      cloths.value = await getClothByCategory(Number(filters.value.categoryId));
+      return;
+    }
+
+    if (filters.value.supplierId) {
+      cloths.value = await getClothBySupplier(filters.value.supplierId);
+      return;
+    }
+
+    if (filters.value.status === "active") {
+      cloths.value = await getIsActive();
+      return;
+    }
+
+    if (filters.value.status === "inactive") {
+      cloths.value = await getIsNotActive();
+      return;
+    }
+
+    // Si no hay filtros aplicados
+    fetchCloths();
+  } catch (e) {
+    toast.error("Error al aplicar filtros");
+  }
+};
+
+const resetFilters = () => {
+  filters.value = {
+    name: "",
+    categoryId: "",
+    supplierId: "",
+    status: "",
+  };
+  fetchCloths();
+};
+
+onMounted(() => {
+  fetchCloths();
+  loadCategoriesAndSuppliers(); // ✅ ESTA LÍNEA ES CLAVE
+});
 </script>

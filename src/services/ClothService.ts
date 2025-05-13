@@ -54,3 +54,8 @@ export async function getClothByUser(userId: number) {
   const response = await api.get(`/cloths/user/${userId}`);
   return response.data;
 }
+
+export async function getByCreatedAtBetween(data: any) {
+  const response = await api.get("/cloths/created-between", data);
+  return response.data;
+}
