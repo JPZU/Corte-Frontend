@@ -78,6 +78,45 @@
         Crear Usuario
       </button>
     </div>
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <input
+          v-model="filter.name"
+          @keyup.enter="filterByName"
+          type="text"
+          class="form-control"
+          placeholder="Buscar por nombre"
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          v-model="filter.email"
+          @keyup.enter="filterByEmail"
+          type="email"
+          class="form-control"
+          placeholder="Buscar por email"
+        />
+      </div>
+      <div class="col-md-3">
+        <select
+          v-model="filter.role"
+          @change="filterByRole"
+          class="form-select"
+        >
+          <option value="">-- Filtrar por rol --</option>
+          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+          <option value="ADMIN">ADMIN</option>
+          <option value="EDITOR">EDITOR</option>
+          <option value="VIEWER">VIEWER</option>
+          <option value="INACTIVE">INACTIVE</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-secondary w-100" @click="clearFilters">
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
 
     <table class="table">
       <thead>
@@ -120,6 +159,9 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  getUserByName,
+  getUserByEmail,
+  getUserByRole,
 } from "@/services/UserService";
 
 const toast = useToast();
@@ -139,15 +181,64 @@ const formUser = ref({
 
 const isEditing = ref(false);
 
+const showPassword = ref(false);
+
+const filter = ref({
+  name: "",
+  email: "",
+  role: "",
+});
+
 const canCreate = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 const canEdit = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 const canDelete = authStore.role === "SUPER_ADMIN";
+
+const clearFilters = () => {
+  filter.value = {
+    name: "",
+    email: "",
+    role: "",
+  };
+  fetchUsers(); // volver a cargar todos
+};
 
 const fetchUsers = async () => {
   try {
     users.value = await getAllUsers();
   } catch (e) {
     toast.error("Error al cargar los usuarios");
+  }
+};
+
+const filterByName = async () => {
+  if (!filter.value.name) return fetchUsers();
+  try {
+    const result = await getUserByName(filter.value.name);
+    users.value = result ? [result] : [];
+  } catch (e) {
+    users.value = [];
+    toast.warning("No se encontró ningún usuario con ese nombre");
+  }
+};
+
+const filterByEmail = async () => {
+  if (!filter.value.email) return fetchUsers();
+  try {
+    const result = await getUserByEmail(filter.value.email);
+    users.value = result ? [result] : [];
+  } catch (e) {
+    users.value = [];
+    toast.warning("No se encontró ningún usuario con ese email");
+  }
+};
+
+const filterByRole = async () => {
+  if (!filter.value.role) return fetchUsers();
+  try {
+    users.value = await getUserByRole(filter.value.role);
+  } catch (e) {
+    users.value = [];
+    toast.warning("No se encontró ningún usuario con ese rol");
   }
 };
 
@@ -203,8 +294,6 @@ function formatDate(dateStr: string | null) {
     minute: "2-digit",
   });
 }
-
-const showPassword = ref(false);
 
 onMounted(fetchUsers);
 </script>
