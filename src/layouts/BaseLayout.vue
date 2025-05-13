@@ -57,11 +57,11 @@ const moduleAccess = {
 const visibleLinks = computed(() => {
   const role = authStore.role;
   return [
-    { name: "Categories", path: "/categories", key: "categories" },
-    { name: "Cloths", path: "/cloths", key: "cloths" },
-    { name: "References", path: "/references", key: "references" },
-    { name: "Suppliers", path: "/suppliers", key: "suppliers" },
-    { name: "Users", path: "/users", key: "users" },
+    { name: "Referencias", path: "/references", key: "references" },
+    { name: "Categorias", path: "/categories", key: "categories" },
+    { name: "Proveedores", path: "/suppliers", key: "suppliers" },
+    { name: "Telas", path: "/cloths", key: "cloths" },
+    { name: "Usuarios", path: "/users", key: "users" },
   ].filter((link) => moduleAccess[link.key].includes(role));
 });
 </script>

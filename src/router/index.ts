@@ -1,11 +1,9 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import LoginView from "@/views/LoginView.vue";
 import HomeView from "@/views/HomeView.vue";
+import UsersView from "@/views/UsersView.vue";
 
-// no importes el store aquí
-// import { useAuthStore } from '@/store/auth'
-
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: "/login",
     name: "Login",
@@ -17,6 +15,16 @@ const routes = [
     component: HomeView,
     meta: { requiresAuth: true },
   },
+  {
+    path: "/users",
+    name: "Users",
+    component: UsersView,
+    meta: {
+      requiresAuth: true,
+      roles: ["SUPER_ADMIN", "ADMIN", "VIEWER"], // EDITOR no entra aquí
+    },
+  },
+  // Puedes ir agregando más rutas aquí
 ];
 
 const router = createRouter({
@@ -24,16 +32,34 @@ const router = createRouter({
   routes,
 });
 
-// solución: usar un callback para evitar el error de "store no inicializado"
 router.beforeEach(async (to, from, next) => {
   const { useAuthStore } = await import("@/store/auth");
   const authStore = useAuthStore();
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next("/login");
-  } else {
-    next();
+  const isAuthenticated = authStore.isAuthenticated;
+  const userRole = authStore.role;
+
+  // Bloquear acceso si no está autenticado
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return next("/login");
   }
+
+  // Si está autenticado pero el rol es INACTIVE
+  if (userRole === "INACTIVE") {
+    authStore.logout();
+    return next("/login");
+  }
+
+  // Si la ruta define roles permitidos
+  const allowedRoles = to.meta.roles as string[] | undefined;
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    const { useToast } = await import("vue-toastification");
+    const toast = useToast();
+    toast.error("No tienes permiso para acceder a esta página");
+    return next("/");
+  }
+
+  return next();
 });
 
 export default router;
