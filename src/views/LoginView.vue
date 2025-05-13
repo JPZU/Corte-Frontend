@@ -32,7 +32,7 @@
 import { ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/store/auth";
-import { login } from "@/services/AuthService";
+import { login, getProfile } from "@/services/AuthService";
 
 const email = ref("");
 const password = ref("");
@@ -44,6 +44,19 @@ const handleLogin = async () => {
   try {
     const token = await login(email.value, password.value);
     authStore.login(token);
+
+    // ahora pedir el perfil
+    const profile = await getProfile();
+    if (profile.role === "INACTIVE") {
+      error.value = "Tu cuenta está inactiva";
+      authStore.logout();
+      return;
+    }
+    authStore.setUserData({
+      role: profile.role,
+      name: profile.name,
+      email: profile.email,
+    });
     await nextTick();
     router.push("/");
   } catch (e) {

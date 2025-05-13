@@ -2,10 +2,14 @@
   <div>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
       <a class="navbar-brand" href="/">Corte Arapos</a>
-      <div class="ms-auto">
-        <span v-if="authStore.isAuthenticated">
+
+      <div class="ms-auto d-flex align-items-center text-white gap-3">
+        <div v-if="authStore.isAuthenticated">
+          {{ authStore.name }} ({{ authStore.role }})
+        </div>
+        <div v-if="authStore.isAuthenticated">
           <button class="btn btn-outline-light" @click="logout">Logout</button>
-        </span>
+        </div>
       </div>
     </nav>
 
