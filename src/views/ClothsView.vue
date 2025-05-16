@@ -25,7 +25,19 @@
         <hr />
         <p><strong>Usuario:</strong> {{ selectedCloth.user?.name }}</p>
         <p><strong>Proveedor:</strong> {{ selectedCloth.supplier?.name }}</p>
+        <p>
+          <strong>Factura proveedor:</strong>
+          {{ selectedCloth.supplierInvoice }}
+        </p>
+        <p>
+          <strong>Precio por metro:</strong>
+          {{ selectedCloth.price }}
+        </p>
         <p><strong>Categoría:</strong> {{ selectedCloth.category?.name }}</p>
+        <p>
+          <strong>Notas adicionales:</strong>
+          {{ selectedCloth.notes }}
+        </p>
         <hr />
         <p>
           <strong>Creado:</strong> {{ formatDate(selectedCloth.createdAt) }}
@@ -76,6 +88,20 @@
             min="0"
             step="0.01"
           />
+          <input
+            v-model.number="formCloth.price"
+            type="number"
+            class="form-control mb-2"
+            placeholder="Precio por metro"
+            required
+            min="0"
+          />
+          <input
+            v-model="formCloth.supplierInvoice"
+            type="text"
+            class="form-control mb-2"
+            placeholder="# factura proveedor"
+          />
           <select
             v-model="formCloth.category.categoryId"
             class="form-select mb-2"
@@ -105,6 +131,12 @@
               {{ sup.name }}
             </option>
           </select>
+          <textarea
+            v-model="formCloth.notes"
+            type="text"
+            class="form-control mb-2"
+            placeholder="Notas"
+          />
           <div class="form-check mb-3">
             <input
               class="form-check-input"
@@ -233,6 +265,7 @@ import {
   getClothById, // ✅ ESTA LÍNEA
   createCloth,
   updateCloth,
+  getBySupplierInvoice,
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
@@ -275,6 +308,9 @@ const formCloth = ref({
   name: "",
   color: "",
   meters: null,
+  notes: "",
+  price: null,
+  supplierInvoice: "",
   category: {
     categoryId: null,
   },
@@ -303,6 +339,9 @@ const openCreateModal = () => {
     name: "",
     color: "",
     meters: null,
+    notes: "",
+    price: null,
+    supplierInvoice: "",
     category: { categoryId: "" },
     supplier: { supplierId: "" },
     isActive: true,
@@ -349,6 +388,9 @@ const submitCloth = async () => {
       color: formCloth.value.color,
       meters: formCloth.value.meters,
       isActive: formCloth.value.isActive,
+      notes: formCloth.value.notes,
+      price: formCloth.value.price,
+      supplierInvoice: formCloth.value.supplierInvoice,
       userId: authStore.userId, // ✅ desde el store (o donde tengas guardado el usuario logueado)
       categoryId: formCloth.value.category.categoryId,
       supplierId: formCloth.value.supplier.supplierId,
@@ -371,47 +413,86 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
-    let result = await getAllCloths();
+    let result: any[] = [];
 
-    // Filtro por nombre (si coincide exactamente)
+    const hasOtherFilters =
+      filters.value.categoryId ||
+      filters.value.supplierId ||
+      filters.value.status;
+
     if (filters.value.name) {
-      const search = filters.value.name.toLowerCase();
-      result = result.filter((cloth: any) => {
-        const nameMatch = cloth.name.toLowerCase().includes(search);
-        const idMatch =
-          !isNaN(Number(search)) && cloth.clothId === Number(search);
-        return nameMatch || idMatch;
-      });
-    }
+      const search = filters.value.name.trim().toLowerCase();
 
-    // Filtro por categoría
-    if (filters.value.categoryId) {
+      // 1. Intentar por ID (número exacto)
+      if (!isNaN(Number(search))) {
+        try {
+          const clothById = await getClothById(Number(search));
+          result = clothById ? [clothById] : [];
+        } catch (e) {
+          result = [];
+        }
+      }
+
+      // 2. Intentar por nombre
+      try {
+        const clothByName = await getClothByName(search);
+        if (clothByName) {
+          result.push(clothByName); // evitar duplicados después si quieres
+        }
+      } catch (e) {}
+
+      // 3. Intentar por supplierInvoice
+      try {
+        const byInvoice = await getBySupplierInvoice(search);
+        result.push(...byInvoice);
+      } catch (e) {}
+
+      // Eliminar duplicados por clothId
       result = result.filter(
-        (cloth: any) =>
-          cloth.category?.categoryId === Number(filters.value.categoryId)
+        (cloth, index, self) =>
+          index === self.findIndex((c) => c.clothId === cloth.clothId)
       );
     }
 
-    // Filtro por proveedor
-    if (filters.value.supplierId) {
-      result = result.filter(
-        (cloth: any) => cloth.supplier?.supplierId === filters.value.supplierId
-      );
+    // Aplicar otros filtros si vienen
+    if (!filters.value.name || hasOtherFilters) {
+      if (filters.value.categoryId) {
+        const byCat = await getClothByCategory(
+          Number(filters.value.categoryId)
+        );
+        result = mergeResults(result, byCat);
+      }
+
+      if (filters.value.supplierId) {
+        const bySup = await getClothBySupplier(filters.value.supplierId);
+        result = mergeResults(result, bySup);
+      }
+
+      if (filters.value.status === "active") {
+        const actives = await getIsActive();
+        result = mergeResults(result, actives);
+      } else if (filters.value.status === "inactive") {
+        const inactives = await getIsNotActive();
+        result = mergeResults(result, inactives);
+      }
+
+      if (!filters.value.name && !hasOtherFilters) {
+        result = await getAllCloths();
+      }
     }
 
-    // Filtro por estado activo/inactivo
-    if (filters.value.status === "active") {
-      result = result.filter((cloth: any) => cloth.isActive === true);
-    } else if (filters.value.status === "inactive") {
-      result = result.filter((cloth: any) => cloth.isActive === false);
-    }
-
-    // Asignar resultados filtrados
     cloths.value = result;
   } catch (e) {
     toast.error("Error al aplicar filtros");
   }
 };
+
+// 🔧 Función para combinar resultados sin duplicados
+function mergeResults(base: any[], incoming: any[]): any[] {
+  const ids = new Set(base.map((c) => c.clothId));
+  const filtered = incoming.filter((c) => !ids.has(c.clothId));
+  return [...base, ...filtered];
+}
 
 const resetFilters = () => {
   filters.value = {

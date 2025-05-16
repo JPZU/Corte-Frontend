@@ -59,3 +59,8 @@ export async function getByCreatedAtBetween(data: any) {
   const response = await api.get("/cloths/created-between", data);
   return response.data;
 }
+
+export async function getBySupplierInvoice(supplierInvoice: string) {
+  const response = await api.get(`/cloths/supplier-invoice/${supplierInvoice}`);
+  return response.data;
+}
