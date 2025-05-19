@@ -568,6 +568,7 @@ const resetFilters = () => {
     supplierId: "",
     status: "",
   };
+  filtersApplied.value = false;
   fetchCloths();
 };
 
