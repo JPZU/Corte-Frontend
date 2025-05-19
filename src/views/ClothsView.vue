@@ -184,72 +184,80 @@
         Crear Tela
       </button>
     </div>
-    <div class="row g-2 mb-4">
-      <div class="col-md-3">
-        <input
-          type="number"
-          class="form-control"
-          v-model.number="filters.userId"
-          placeholder="Filtrar por ID de usuario"
-        />
-      </div>
-      <div class="col-md-3">
-        <input
-          type="text"
-          class="form-control"
-          v-model="filters.name"
-          placeholder="Filtrar por nombre"
-        />
-      </div>
 
-      <div class="col-md-3">
-        <select v-model="filters.categoryId" class="form-select">
-          <option value="">-- Filtrar por categorías --</option>
-          <option
-            v-for="cat in categories"
-            :key="cat.categoryId"
-            :value="cat.categoryId"
-          >
-            {{ cat.name }}
-          </option>
-        </select>
-      </div>
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Filtros de Búsqueda</h5>
+        <div class="row g-3">
+          <!-- Fila 1 -->
+          <div class="col-md-4">
+            <input
+              type="number"
+              class="form-control"
+              v-model.number="filters.userId"
+              placeholder="ID de Usuario"
+            />
+          </div>
+          <div class="col-md-4">
+            <input
+              type="text"
+              class="form-control"
+              v-model="filters.name"
+              placeholder="Nombre de la tela"
+            />
+          </div>
+          <div class="col-md-4">
+            <input
+              type="text"
+              class="form-control"
+              v-model="filters.supplierInvoice"
+              placeholder="Número de factura"
+            />
+          </div>
 
-      <div class="col-md-3">
-        <select v-model="filters.supplierId" class="form-select">
-          <option value="">-- Filtrar por proveedores --</option>
-          <option
-            v-for="sup in suppliers"
-            :key="sup.supplierId"
-            :value="sup.supplierId"
-          >
-            {{ sup.name }}
-          </option>
-        </select>
-      </div>
+          <!-- Fila 2 -->
+          <div class="col-md-4">
+            <select v-model="filters.categoryId" class="form-select">
+              <option value="">-- Categoría --</option>
+              <option
+                v-for="cat in categories"
+                :key="cat.categoryId"
+                :value="cat.categoryId"
+              >
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <select v-model="filters.supplierId" class="form-select">
+              <option value="">-- Proveedor --</option>
+              <option
+                v-for="sup in suppliers"
+                :key="sup.supplierId"
+                :value="sup.supplierId"
+              >
+                {{ sup.name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <select v-model="filters.status" class="form-select">
+              <option value="">-- Estado --</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
 
-      <div class="col-md-3">
-        <input
-          type="text"
-          class="form-control"
-          v-model="filters.supplierInvoice"
-          placeholder="Filtrar por Número de factura"
-        />
-      </div>
-
-      <div class="col-md-2">
-        <select v-model="filters.status" class="form-select">
-          <option value="">-- Filtrar por estado --</option>
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-        </select>
-      </div>
-
-      <div class="col-md-1 d-flex gap-1">
-        <button class="btn btn-primary w-100" @click="applyFilters">
-          Buscar
-        </button>
-        <button class="btn btn-secondary w-100" @click="resetFilters">✖</button>
+          <!-- Fila Botones -->
+          <div class="col-12 text-end">
+            <button class="btn btn-primary me-2" @click="applyFilters">
+              🔍 Buscar
+            </button>
+            <button class="btn btn-secondary" @click="resetFilters">
+              ✖ Limpiar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
