@@ -248,6 +248,25 @@
         </div>
       </div>
     </div>
+    <div class="d-flex justify-content-center mt-4">
+      <button
+        class="btn btn-outline-primary me-2"
+        @click="goToPreviousPage"
+        :disabled="currentPage === 0"
+      >
+        ← Anterior
+      </button>
+      <span class="align-self-center"
+        >Página {{ currentPage + 1 }} de {{ totalPages }}</span
+      >
+      <button
+        class="btn btn-outline-primary ms-2"
+        @click="goToNextPage"
+        :disabled="currentPage >= totalPages - 1"
+      >
+        Siguiente →
+      </button>
+    </div>
   </div>
 </template>
 
@@ -266,9 +285,14 @@ import {
   createCloth,
   updateCloth,
   getBySupplierInvoice,
+  getAllClothsPaged,
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
+
+const currentPage = ref(0);
+const pageSize = ref(6); // puedes ajustar este valor
+const totalPages = ref(1);
 
 const categories = ref<any[]>([]);
 const suppliers = ref<any[]>([]);
@@ -322,13 +346,25 @@ const formCloth = ref({
 
 const fetchCloths = async () => {
   try {
-    const data = await getAllCloths();
-    cloths.value = data.sort((a, b) => {
-      // Primero las activas (true > false)
-      return (b.isActive === true ? 1 : 0) - (a.isActive === true ? 1 : 0);
-    });
+    const res = await getAllClothsPaged(currentPage.value, pageSize.value);
+    cloths.value = res.data;
+    totalPages.value = res.totalPages;
   } catch (e) {
     toast.error("Error al cargar las telas");
+  }
+};
+
+const goToNextPage = () => {
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value++;
+    fetchCloths();
+  }
+};
+
+const goToPreviousPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--;
+    fetchCloths();
   }
 };
 

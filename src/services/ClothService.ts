@@ -64,3 +64,10 @@ export async function getBySupplierInvoice(supplierInvoice: string) {
   const response = await api.get(`/cloths/supplier-invoice/${supplierInvoice}`);
   return response.data;
 }
+
+export async function getAllClothsPaged(page = 0, size = 6) {
+  const response = await api.get("/cloths/paged", {
+    params: { page, size },
+  });
+  return response.data;
+}
