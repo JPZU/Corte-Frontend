@@ -187,6 +187,14 @@
     <div class="row g-2 mb-4">
       <div class="col-md-3">
         <input
+          type="number"
+          class="form-control"
+          v-model.number="filters.userId"
+          placeholder="Filtrar por ID de usuario"
+        />
+      </div>
+      <div class="col-md-3">
+        <input
           type="text"
           class="form-control"
           v-model="filters.name"
@@ -218,6 +226,15 @@
             {{ sup.name }}
           </option>
         </select>
+      </div>
+
+      <div class="col-md-3">
+        <input
+          type="text"
+          class="form-control"
+          v-model="filters.supplierInvoice"
+          placeholder="Filtrar por Número de factura"
+        />
       </div>
 
       <div class="col-md-2">
@@ -330,6 +347,8 @@ const loadCategoriesAndSuppliers = async () => {
 
 const filters = ref({
   name: "",
+  supplierInvoice: "",
+  userId: null,
   categoryId: "",
   supplierId: "",
   status: "", // "active", "inactive"
@@ -471,15 +490,24 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
-    currentPage.value = 0; // ✅ Reiniciar a página 0
+    // ✅ Reiniciar la página antes de construir los parámetros
+    currentPage.value = 0;
 
     const params: any = {
       page: currentPage.value,
       size: pageSize.value,
     };
 
-    if (filters.value.name) {
+    if (filters.value.name?.trim()) {
       params.name = filters.value.name.trim();
+    }
+
+    if (filters.value.supplierInvoice?.trim()) {
+      params.supplierInvoice = filters.value.supplierInvoice.trim();
+    }
+
+    if (filters.value.userId) {
+      params.userId = filters.value.userId;
     }
 
     if (filters.value.status) {
@@ -505,6 +533,8 @@ const applyFilters = async () => {
 const resetFilters = () => {
   filters.value = {
     name: "",
+    supplierInvoice: "",
+    userId: null,
     categoryId: "",
     supplierId: "",
     status: "",

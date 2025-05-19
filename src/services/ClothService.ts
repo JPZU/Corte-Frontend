@@ -76,6 +76,8 @@ export async function filterCloths(params: {
   page: number;
   size: number;
   name?: string;
+  supplierInvoice?: string;
+  userId?: number;
   isActive?: boolean;
   categoryId?: number;
   supplierId?: string;
