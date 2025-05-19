@@ -31,12 +31,12 @@ export async function getClothByName(name: string) {
 }
 
 export async function getIsActive() {
-  const response = await api.get("/cloths/is-active/");
+  const response = await api.get("/cloths/is-active");
   return response.data;
 }
 
 export async function getIsNotActive() {
-  const response = await api.get("/cloths/is-not-active/");
+  const response = await api.get("/cloths/is-not-active");
   return response.data;
 }
 

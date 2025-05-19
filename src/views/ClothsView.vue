@@ -170,7 +170,7 @@
           type="text"
           class="form-control"
           v-model="filters.name"
-          placeholder="Buscar por nombre o ID"
+          placeholder="Filtrar por nombre, id o factura"
         />
       </div>
 
@@ -413,72 +413,45 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
-    let result: any[] = [];
+    const allCloths = await getAllCloths();
+    let result = allCloths;
 
-    const hasOtherFilters =
-      filters.value.categoryId ||
-      filters.value.supplierId ||
-      filters.value.status;
+    // Filtrar por nombre, id o factura
+    const search = filters.value.name.trim().toLowerCase();
+    if (search) {
+      result = result.filter((cloth) => {
+        const matchesId = cloth.clothId?.toString() === search;
+        const matchesName = cloth.name?.toLowerCase().includes(search);
+        const matchesInvoice = cloth.supplierInvoice
+          ?.toLowerCase()
+          .includes(search);
+        return matchesId || matchesName || matchesInvoice;
+      });
+    }
 
-    if (filters.value.name) {
-      const search = filters.value.name.trim().toLowerCase();
-
-      // 1. Intentar por ID (número exacto)
-      if (!isNaN(Number(search))) {
-        try {
-          const clothById = await getClothById(Number(search));
-          result = clothById ? [clothById] : [];
-        } catch (e) {
-          result = [];
-        }
-      }
-
-      // 2. Intentar por nombre
-      try {
-        const clothByName = await getClothByName(search);
-        if (clothByName) {
-          result.push(clothByName); // evitar duplicados después si quieres
-        }
-      } catch (e) {}
-
-      // 3. Intentar por supplierInvoice
-      try {
-        const byInvoice = await getBySupplierInvoice(search);
-        result.push(...byInvoice);
-      } catch (e) {}
-
-      // Eliminar duplicados por clothId
+    // Filtrar por categoría
+    if (filters.value.categoryId) {
       result = result.filter(
-        (cloth, index, self) =>
-          index === self.findIndex((c) => c.clothId === cloth.clothId)
+        (cloth) =>
+          cloth.category?.categoryId?.toString() ===
+          filters.value.categoryId.toString()
       );
     }
 
-    // Aplicar otros filtros si vienen
-    if (!filters.value.name || hasOtherFilters) {
-      if (filters.value.categoryId) {
-        const byCat = await getClothByCategory(
-          Number(filters.value.categoryId)
-        );
-        result = mergeResults(result, byCat);
-      }
+    // Filtrar por proveedor
+    if (filters.value.supplierId) {
+      result = result.filter(
+        (cloth) =>
+          cloth.supplier?.supplierId?.toString() ===
+          filters.value.supplierId.toString()
+      );
+    }
 
-      if (filters.value.supplierId) {
-        const bySup = await getClothBySupplier(filters.value.supplierId);
-        result = mergeResults(result, bySup);
-      }
-
-      if (filters.value.status === "active") {
-        const actives = await getIsActive();
-        result = mergeResults(result, actives);
-      } else if (filters.value.status === "inactive") {
-        const inactives = await getIsNotActive();
-        result = mergeResults(result, inactives);
-      }
-
-      if (!filters.value.name && !hasOtherFilters) {
-        result = await getAllCloths();
-      }
+    // Filtrar por estado
+    if (filters.value.status === "active") {
+      result = result.filter((cloth) => cloth.isActive === true);
+    } else if (filters.value.status === "inactive") {
+      result = result.filter((cloth) => cloth.isActive === false);
     }
 
     cloths.value = result;
