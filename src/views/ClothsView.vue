@@ -292,6 +292,14 @@
           </div>
         </div>
       </div>
+      <div
+        v-if="filtersApplied && cloths.length === 0"
+        class="col-12 text-center"
+      >
+        <div class="alert alert-warning mt-3" role="alert">
+          No se encontraron telas con los filtros aplicados.
+        </div>
+      </div>
     </div>
 
     <div class="d-flex justify-content-center mt-4">
@@ -340,6 +348,8 @@ import { getAllSuppliers } from "@/services/SupplierService";
 const currentPage = ref(0);
 const pageSize = ref(16); // puedes ajustar este valor
 const totalPages = ref(1);
+
+const filtersApplied = ref(false);
 
 const categories = ref<any[]>([]);
 const suppliers = ref<any[]>([]);
@@ -498,7 +508,7 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
-    // ✅ Reiniciar la página antes de construir los parámetros
+    // Reiniciar la página a la primera
     currentPage.value = 0;
 
     const params: any = {
@@ -506,6 +516,16 @@ const applyFilters = async () => {
       size: pageSize.value,
     };
 
+    // Determinar si se están aplicando filtros
+    filtersApplied.value =
+      !!filters.value.name?.trim() ||
+      !!filters.value.supplierInvoice?.trim() ||
+      !!filters.value.userId ||
+      !!filters.value.status ||
+      !!filters.value.categoryId ||
+      !!filters.value.supplierId;
+
+    // Agregar los filtros a los parámetros si existen
     if (filters.value.name?.trim()) {
       params.name = filters.value.name.trim();
     }
@@ -530,6 +550,7 @@ const applyFilters = async () => {
       params.supplierId = filters.value.supplierId;
     }
 
+    // Hacer la solicitud
     const res = await filterCloths(params);
     cloths.value = res.data;
     totalPages.value = res.totalPages;
