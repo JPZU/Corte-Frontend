@@ -65,9 +65,21 @@ export async function getBySupplierInvoice(supplierInvoice: string) {
   return response.data;
 }
 
-export async function getAllClothsPaged(page = 0, size = 6) {
+export async function getAllClothsPaged(page = 0, size = 16) {
   const response = await api.get("/cloths/paged", {
     params: { page, size },
   });
+  return response.data;
+}
+
+export async function filterCloths(params: {
+  page: number;
+  size: number;
+  name?: string;
+  isActive?: boolean;
+  categoryId?: number;
+  supplierId?: string;
+}) {
+  const response = await api.get("/cloths/filter", { params });
   return response.data;
 }

@@ -10,29 +10,49 @@
         style="width: 500px"
       >
         <h5>📄 Detalle de Tela</h5>
-        <p><strong>ID:</strong> {{ selectedCloth.clothId }}</p>
-        <p><strong>Nombre:</strong> {{ selectedCloth.name }}</p>
-        <p><strong>Color:</strong> {{ selectedCloth.color }}</p>
-        <p><strong>Metros:</strong> {{ selectedCloth.meters }}</p>
+        <p><strong>ID: </strong> {{ selectedCloth.clothId }}</p>
         <p>
-          <strong>Activo: </strong>
-          <span
-            :class="selectedCloth.isActive ? 'text-success' : 'text-danger'"
-          >
-            {{ selectedCloth.isActive ? "Sí" : "No" }}
+          <strong>Nombre: </strong>
+          <span class="text-uppercase">
+            {{ selectedCloth.name }}
           </span>
         </p>
+        <p class="text-capitalize">
+          <strong>Color: </strong> {{ selectedCloth.color }}
+        </p>
+        <p><strong>Metros:</strong> {{ formatMeters(selectedCloth.meters) }}</p>
+        <p>
+          <strong
+            >Activo:
+            <span
+              class="text-uppercase"
+              :class="selectedCloth.isActive ? 'text-success' : 'text-danger'"
+            >
+              {{ selectedCloth.isActive ? "Sí" : "No" }}
+            </span></strong
+          >
+        </p>
         <hr />
-        <p><strong>Usuario:</strong> {{ selectedCloth.user?.name }}</p>
-        <p><strong>Proveedor:</strong> {{ selectedCloth.supplier?.name }}</p>
         <p>
-          <strong>Factura proveedor:</strong>
-          {{ selectedCloth.supplierInvoice }}
+          <strong>Usuario: </strong>
+          <span class="text-uppercase">
+            {{ selectedCloth.user?.name }}
+          </span>
         </p>
-        <p>
+        <p class="text-capitalize">
+          <strong>Proveedor:</strong> {{ selectedCloth.supplier?.name }}
+        </p>
+        <p class="text-capitalize">
+          <strong>Factura proveedor: </strong>
+          <span class="text-uppercase">
+            {{ selectedCloth.supplierInvoice }}
+          </span>
+        </p>
+        <p class="text-capitalize">
           <strong>Precio por metro:</strong>
-          {{ selectedCloth.price }}
+          {{ formatPrice(selectedCloth.price) }}
         </p>
+
         <p><strong>Categoría:</strong> {{ selectedCloth.category?.name }}</p>
         <p>
           <strong>Notas adicionales:</strong>
@@ -94,13 +114,7 @@
             class="form-control mb-2"
             placeholder="Precio por metro"
             required
-            min="0"
-          />
-          <input
-            v-model="formCloth.supplierInvoice"
-            type="text"
-            class="form-control mb-2"
-            placeholder="# factura proveedor"
+            min="1000"
           />
           <select
             v-model="formCloth.category.categoryId"
@@ -131,6 +145,12 @@
               {{ sup.name }}
             </option>
           </select>
+          <input
+            v-model="formCloth.supplierInvoice"
+            type="text"
+            class="form-control mb-2"
+            placeholder="Número factura proveedor"
+          />
           <textarea
             v-model="formCloth.notes"
             type="text"
@@ -170,7 +190,7 @@
           type="text"
           class="form-control"
           v-model="filters.name"
-          placeholder="Filtrar por nombre, id o factura"
+          placeholder="Filtrar por nombre"
         />
       </div>
 
@@ -217,20 +237,20 @@
     </div>
 
     <div class="row g-3">
-      <div class="col-md-4" v-for="cloth in cloths" :key="cloth.clothId">
+      <div class="col-md-3" v-for="cloth in cloths" :key="cloth.clothId">
         <div
-          class="card shadow-sm"
+          class="card shadow-sm w-100"
           :class="[
             cloth.isActive ? 'border-success' : 'border-danger',
             'border-5',
           ]"
         >
           <div class="card-body text-center">
-            <h5 class="card-title">{{ cloth.name }}</h5>
-            <p class="card-text">
+            <h5 class="card-title text-uppercase">{{ cloth.name }}</h5>
+            <p class="card-text text-capitalize">
               <strong>ID:</strong> {{ cloth.clothId }}<br />
               <strong>Color:</strong> {{ cloth.color }}<br />
-              <strong>Metros:</strong> {{ cloth.meters }}<br />
+              <strong>Metros:</strong> {{ formatMeters(cloth.meters) }}<br />
             </p>
             <div class="d-flex justify-content-center gap-2">
               <button
@@ -248,13 +268,14 @@
         </div>
       </div>
     </div>
+
     <div class="d-flex justify-content-center mt-4">
       <button
         class="btn btn-outline-primary me-2"
         @click="goToPreviousPage"
         :disabled="currentPage === 0"
       >
-        ← Anterior
+        ←
       </button>
       <span class="align-self-center"
         >Página {{ currentPage + 1 }} de {{ totalPages }}</span
@@ -264,7 +285,7 @@
         @click="goToNextPage"
         :disabled="currentPage >= totalPages - 1"
       >
-        Siguiente →
+        →
       </button>
     </div>
   </div>
@@ -286,12 +307,13 @@ import {
   updateCloth,
   getBySupplierInvoice,
   getAllClothsPaged,
+  filterCloths,
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
 
 const currentPage = ref(0);
-const pageSize = ref(6); // puedes ajustar este valor
+const pageSize = ref(16); // puedes ajustar este valor
 const totalPages = ref(1);
 
 const categories = ref<any[]>([]);
@@ -449,59 +471,36 @@ const submitCloth = async () => {
 
 const applyFilters = async () => {
   try {
-    const allCloths = await getAllCloths();
-    let result = allCloths;
+    currentPage.value = 0; // ✅ Reiniciar a página 0
 
-    // Filtrar por nombre, id o factura
-    const search = filters.value.name.trim().toLowerCase();
-    if (search) {
-      result = result.filter((cloth) => {
-        const matchesId = cloth.clothId?.toString() === search;
-        const matchesName = cloth.name?.toLowerCase().includes(search);
-        const matchesInvoice = cloth.supplierInvoice
-          ?.toLowerCase()
-          .includes(search);
-        return matchesId || matchesName || matchesInvoice;
-      });
+    const params: any = {
+      page: currentPage.value,
+      size: pageSize.value,
+    };
+
+    if (filters.value.name) {
+      params.name = filters.value.name.trim();
     }
 
-    // Filtrar por categoría
+    if (filters.value.status) {
+      params.isActive = filters.value.status === "active";
+    }
+
     if (filters.value.categoryId) {
-      result = result.filter(
-        (cloth) =>
-          cloth.category?.categoryId?.toString() ===
-          filters.value.categoryId.toString()
-      );
+      params.categoryId = filters.value.categoryId;
     }
 
-    // Filtrar por proveedor
     if (filters.value.supplierId) {
-      result = result.filter(
-        (cloth) =>
-          cloth.supplier?.supplierId?.toString() ===
-          filters.value.supplierId.toString()
-      );
+      params.supplierId = filters.value.supplierId;
     }
 
-    // Filtrar por estado
-    if (filters.value.status === "active") {
-      result = result.filter((cloth) => cloth.isActive === true);
-    } else if (filters.value.status === "inactive") {
-      result = result.filter((cloth) => cloth.isActive === false);
-    }
-
-    cloths.value = result;
+    const res = await filterCloths(params);
+    cloths.value = res.data;
+    totalPages.value = res.totalPages;
   } catch (e) {
     toast.error("Error al aplicar filtros");
   }
 };
-
-// 🔧 Función para combinar resultados sin duplicados
-function mergeResults(base: any[], incoming: any[]): any[] {
-  const ids = new Set(base.map((c) => c.clothId));
-  const filtered = incoming.filter((c) => !ids.has(c.clothId));
-  return [...base, ...filtered];
-}
 
 const resetFilters = () => {
   filters.value = {
@@ -511,6 +510,21 @@ const resetFilters = () => {
     status: "",
   };
   fetchCloths();
+};
+
+const formatPrice = (value: number) => {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0, // si no quieres decimales
+  }).format(value);
+};
+
+const formatMeters = (value: number) => {
+  return new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 };
 
 onMounted(() => {
