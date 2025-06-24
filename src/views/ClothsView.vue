@@ -272,7 +272,7 @@ const authStore = useAuthStore();
 
 const cloths = ref<any[]>([]);
 
-const canCreate = ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role);
+const canCreate = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 const canEdit = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 
 const showFormModal = ref(false);
