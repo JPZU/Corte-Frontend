@@ -76,6 +76,27 @@
       </table>
     </div>
 
+    <!-- Paginación -->
+    <div class="d-flex justify-content-center mt-4">
+      <button
+        class="btn btn-outline-primary me-2"
+        @click="previousPage"
+        :disabled="currentPage === 0"
+      >
+        ←
+      </button>
+      <span class="align-self-center"
+        >Página {{ currentPage + 1 }} de {{ totalPages }}</span
+      >
+      <button
+        class="btn btn-outline-primary ms-2"
+        @click="nextPage"
+        :disabled="currentPage >= totalPages - 1"
+      >
+        →
+      </button>
+    </div>
+
     <!-- Modal Detalle Entrada -->
     <div
       v-if="showDetailModal && selectedEntry"
