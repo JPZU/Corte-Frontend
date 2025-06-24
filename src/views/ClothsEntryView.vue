@@ -2,6 +2,13 @@
   <div>
     <h2 class="mb-4">Entradas de Telas</h2>
 
+    <!-- Botón Crear Entrada -->
+    <div class="mb-3" v-if="canCreate">
+      <button class="btn btn-success" @click="openCreateModal">
+        + Nueva Entrada
+      </button>
+    </div>
+
     <!-- Filtros -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
@@ -12,7 +19,7 @@
               type="text"
               class="form-control"
               v-model="filters.supplierId"
-              placeholder="Nombre del proveedor"
+              placeholder="Id Proveedor"
             />
           </div>
           <div class="col-md-4">
@@ -63,7 +70,6 @@
               <button class="btn btn-sm btn-info" @click="viewDetail(entry)">
                 Ver
               </button>
-              <!-- Futuro: editar o eliminar -->
             </td>
           </tr>
         </tbody>
@@ -91,7 +97,7 @@
       </button>
     </div>
 
-    <!-- Modal detalle (por ahora solo muestra datos básicos) -->
+    <!-- Modal Detalle -->
     <div
       v-if="showDetailModal"
       class="modal-backdrop d-flex justify-content-center align-items-center"
@@ -121,8 +127,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/store/auth";
 import {
   getAllClothsEntryPaged,
   getClothsEntryBySupplierId,
@@ -130,6 +137,7 @@ import {
 } from "@/services/ClothEntryService";
 
 const toast = useToast();
+const authStore = useAuthStore();
 
 const entries = ref<any[]>([]);
 const currentPage = ref(0);
@@ -143,6 +151,13 @@ const filters = ref({
 
 const showDetailModal = ref(false);
 const selectedEntry = ref<any>(null);
+
+const canCreate = computed(() =>
+  ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role)
+);
+const canEdit = computed(() =>
+  ["SUPER_ADMIN", "ADMIN"].includes(authStore.role)
+);
 
 const fetchEntries = async () => {
   try {
@@ -161,7 +176,6 @@ const applyFilters = async () => {
       entries.value = result ? [result] : [];
       return;
     }
-
     if (filters.value.supplierInvoice) {
       const result = await getClothsEntryBySupplierInvoice(
         filters.value.supplierInvoice
@@ -169,7 +183,6 @@ const applyFilters = async () => {
       entries.value = result ? [result] : [];
       return;
     }
-
     fetchEntries();
   } catch (error) {
     toast.error("Error al aplicar filtros");
@@ -214,7 +227,23 @@ function formatDate(dateStr: string) {
   });
 }
 
+const openCreateModal = () => {
+  toast.info("Aquí abrirás el formulario para crear la entrada con items");
+};
+
 onMounted(() => {
   fetchEntries();
 });
 </script>
+
+<style scoped>
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
+</style>
