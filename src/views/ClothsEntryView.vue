@@ -217,7 +217,7 @@
                 <input
                   :value="item.name || 'Código incorrecto'"
                   type="text"
-                  class="form-control text-danger"
+                  class="form-control"
                   placeholder="Nombre"
                   disabled
                 />
@@ -273,8 +273,9 @@
           </button>
 
           <button type="submit" class="btn btn-success w-100">
-            Crear Entrada
+            {{ isEditing ? "Guardar Cambios" : "Crear Entrada" }}
           </button>
+
           <button
             class="btn btn-link text-danger w-100 mt-2"
             @click="showCreateModal = false"
