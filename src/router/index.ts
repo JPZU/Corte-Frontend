@@ -3,6 +3,7 @@ import LoginView from "@/views/LoginView.vue";
 import HomeView from "@/views/HomeView.vue";
 import UsersView from "@/views/UsersView.vue";
 import ClothsView from "@/views/ClothsView.vue";
+import ClothsEntryView from "@/views/ClothsEntryView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -34,6 +35,16 @@ const routes: RouteRecordRaw[] = [
       roles: ["SUPER_ADMIN", "ADMIN", "VIEWER", "EDITOR"],
     },
   },
+  {
+    path: "/cloths-entry",
+    name: "ClothsEntry",
+    component: ClothsEntryView,
+    meta: {
+      requiresAuth: true,
+      roles: ["SUPER_ADMIN", "ADMIN", "EDITOR"],
+    },
+  },
+
   // Puedes ir agregando más rutas aquí
 ];
 

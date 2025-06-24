@@ -48,6 +48,7 @@ const logout = () => {
 const moduleAccess = {
   categories: ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
   cloths: ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
+  clothsEntry: ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
   references: ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
   suppliers: ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"],
   users: ["SUPER_ADMIN", "ADMIN", "VIEWER"],
@@ -61,6 +62,7 @@ const visibleLinks = computed(() => {
     { name: "Categorias", path: "/categories", key: "categories" },
     { name: "Proveedores", path: "/suppliers", key: "suppliers" },
     { name: "Telas", path: "/cloths", key: "cloths" },
+    { name: "Entrada Telas", path: "/cloths-entry", key: "clothsEntry" },
     { name: "Usuarios", path: "/users", key: "users" },
   ].filter((link) => moduleAccess[link.key].includes(role));
 });
