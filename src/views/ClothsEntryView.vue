@@ -76,6 +76,52 @@
       </table>
     </div>
 
+    <!-- Modal Detalle Entrada -->
+    <div
+      v-if="showDetailModal && selectedEntry"
+      class="modal-backdrop d-flex justify-content-center align-items-center"
+    >
+      <div
+        class="modal-content p-4 rounded bg-white shadow"
+        style="width: 800px"
+      >
+        <h5>Detalle de Entrada</h5>
+        <p><strong>ID:</strong> {{ selectedEntry.clothEntryId }}</p>
+        <p><strong>Factura:</strong> {{ selectedEntry.supplierInvoice }}</p>
+        <p><strong>Proveedor:</strong> {{ selectedEntry.supplier?.name }}</p>
+        <p><strong>Usuario:</strong> {{ selectedEntry.user?.name }}</p>
+        <p><strong>Notas:</strong> {{ selectedEntry.notes }}</p>
+        <p><strong>Fecha:</strong> {{ formatDate(selectedEntry.createdAt) }}</p>
+
+        <h6>Ítems</h6>
+        <table class="table table-bordered mt-3">
+          <thead>
+            <tr>
+              <th>Código Tela</th>
+              <th>Nombre</th>
+              <th>Color</th>
+              <th>Metros</th>
+              <th>Precio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in selectedItems" :key="item.itemClothEntryId">
+              <td>{{ item.cloth?.clothId }}</td>
+              <td>{{ item.cloth?.name || "Desconocido" }}</td>
+              <td>{{ item.color }}</td>
+              <td>{{ item.metersAdded }}</td>
+              <td>{{ item.price }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="text-end">
+          <button class="btn btn-secondary" @click="showDetailModal = false">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Modal Crear Entrada con Ítems -->
     <div
       v-if="showCreateModal"
@@ -225,6 +271,7 @@ import {
 import { createFullClothEntry } from "@/services/ClothEntryFullService";
 import { getAllSuppliers } from "@/services/SupplierService";
 import { getClothById } from "@/services/ClothService";
+import { getClothsEntryItemByClothEntryId } from "@/services/ClothEntryItemService";
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -239,6 +286,7 @@ const filters = ref({ supplierId: "", supplierInvoice: "" });
 
 const showDetailModal = ref(false);
 const selectedEntry = ref<any>(null);
+const selectedItems = ref<any[]>([]);
 
 const showCreateModal = ref(false);
 const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
@@ -321,9 +369,16 @@ const nextPage = () => {
   }
 };
 
-const viewDetail = (entry: any) => {
-  selectedEntry.value = entry;
-  showDetailModal.value = true;
+const viewDetail = async (entry: any) => {
+  try {
+    selectedEntry.value = entry;
+    selectedItems.value = await getClothsEntryItemByClothEntryId(
+      entry.clothEntryId
+    );
+    showDetailModal.value = true;
+  } catch (e) {
+    toast.error("No se pudo cargar el detalle de los ítems");
+  }
 };
 
 const openCreateModal = () => {
