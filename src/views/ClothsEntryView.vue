@@ -76,51 +76,138 @@
       </table>
     </div>
 
-    <!-- Paginación -->
-    <div class="d-flex justify-content-center mt-4">
-      <button
-        class="btn btn-outline-primary me-2"
-        @click="previousPage"
-        :disabled="currentPage === 0"
-      >
-        ←
-      </button>
-      <span class="align-self-center"
-        >Página {{ currentPage + 1 }} de {{ totalPages }}</span
-      >
-      <button
-        class="btn btn-outline-primary ms-2"
-        @click="nextPage"
-        :disabled="currentPage >= totalPages - 1"
-      >
-        →
-      </button>
-    </div>
-
-    <!-- Modal Detalle -->
+    <!-- Modal Crear Entrada con Ítems -->
     <div
-      v-if="showDetailModal"
+      v-if="showCreateModal"
       class="modal-backdrop d-flex justify-content-center align-items-center"
     >
       <div
         class="modal-content p-4 rounded bg-white shadow"
-        style="width: 500px"
+        style="width: 800px"
       >
-        <h5>Detalle de Entrada</h5>
-        <p><strong>ID:</strong> {{ selectedEntry.clothEntryId }}</p>
-        <p><strong>Factura:</strong> {{ selectedEntry.supplierInvoice }}</p>
-        <p><strong>Proveedor:</strong> {{ selectedEntry.supplier?.name }}</p>
-        <p><strong>Usuario:</strong> {{ selectedEntry.user?.name }}</p>
-        <p><strong>Notas:</strong> {{ selectedEntry.notes }}</p>
-        <p>
-          <strong>Creado:</strong> {{ formatDate(selectedEntry.createdAt) }}
-        </p>
-        <button
-          class="btn btn-danger w-100 mt-3"
-          @click="showDetailModal = false"
-        >
-          Cerrar
-        </button>
+        <h5>Crear Entrada con Ítems</h5>
+
+        <form @submit.prevent="submitFullEntry">
+          <div class="mb-2">
+            <input
+              v-model="formEntry.supplierInvoice"
+              type="text"
+              class="form-control"
+              placeholder="Factura proveedor"
+              required
+            />
+          </div>
+          <div class="mb-2">
+            <input
+              v-model="formEntry.notes"
+              type="text"
+              class="form-control"
+              placeholder="Notas"
+            />
+          </div>
+          <div class="mb-3">
+            <select
+              v-model.number="formEntry.supplierId"
+              class="form-select"
+              required
+            >
+              <option value="" disabled>Seleccione un proveedor</option>
+              <option
+                v-for="s in suppliers"
+                :key="s.supplierId"
+                :value="s.supplierId"
+              >
+                {{ s.name }} (ID: {{ s.supplierId }})
+              </option>
+            </select>
+          </div>
+
+          <h6>Ítems</h6>
+          <div
+            v-for="(item, index) in formItems"
+            :key="index"
+            class="border rounded p-2 mb-2"
+          >
+            <div class="row g-2">
+              <div class="col-md-3">
+                <input
+                  v-model.number="item.clothId"
+                  @input="loadClothName(item)"
+                  type="number"
+                  class="form-control"
+                  placeholder="Código tela"
+                  required
+                />
+              </div>
+              <div class="col-md-3">
+                <input
+                  :value="item.name || 'Código incorrecto'"
+                  type="text"
+                  class="form-control text-danger"
+                  placeholder="Nombre"
+                  disabled
+                />
+              </div>
+              <div class="col-md-2">
+                <input
+                  v-model="item.color"
+                  type="text"
+                  class="form-control"
+                  placeholder="Color"
+                  required
+                />
+              </div>
+              <div class="col-md-2">
+                <input
+                  v-model.number="item.meters"
+                  type="number"
+                  class="form-control"
+                  placeholder="Metros"
+                  min="0.1"
+                  step="0.01"
+                  required
+                />
+                <small class="text-muted">Metros</small>
+              </div>
+              <div class="col-md-2">
+                <input
+                  v-model.number="item.price"
+                  type="number"
+                  class="form-control"
+                  placeholder="Precio"
+                  min="1"
+                  required
+                />
+                <small class="text-muted">Precio por metro</small>
+              </div>
+              <div class="col-md-1">
+                <button
+                  class="btn btn-danger w-100"
+                  @click.prevent="removeItem(index)"
+                >
+                  ✖
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="btn btn-outline-secondary mb-3 w-100"
+            @click.prevent="addItem"
+          >
+            + Agregar Ítem
+          </button>
+
+          <button type="submit" class="btn btn-success w-100">
+            Crear Entrada
+          </button>
+          <button
+            class="btn btn-link text-danger w-100 mt-2"
+            @click="showCreateModal = false"
+          >
+            Cancelar
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -135,6 +222,9 @@ import {
   getClothsEntryBySupplierId,
   getClothsEntryBySupplierInvoice,
 } from "@/services/ClothEntryService";
+import { createFullClothEntry } from "@/services/ClothEntryFullService";
+import { getAllSuppliers } from "@/services/SupplierService";
+import { getClothById } from "@/services/ClothService";
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -143,14 +233,16 @@ const entries = ref<any[]>([]);
 const currentPage = ref(0);
 const pageSize = ref(10);
 const totalPages = ref(1);
+const suppliers = ref<any[]>([]);
 
-const filters = ref({
-  supplierId: "",
-  supplierInvoice: "",
-});
+const filters = ref({ supplierId: "", supplierInvoice: "" });
 
 const showDetailModal = ref(false);
 const selectedEntry = ref<any>(null);
+
+const showCreateModal = ref(false);
+const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
+const formItems = ref<any[]>([]);
 
 const canCreate = computed(() =>
   ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role)
@@ -166,6 +258,27 @@ const fetchEntries = async () => {
     totalPages.value = res.totalPages;
   } catch (error) {
     toast.error("Error al cargar las entradas");
+  }
+};
+
+const fetchSuppliers = async () => {
+  try {
+    suppliers.value = await getAllSuppliers();
+  } catch (error) {
+    toast.error("Error cargando proveedores");
+  }
+};
+
+const loadClothName = async (item: any) => {
+  if (!item.clothId) {
+    item.name = "";
+    return;
+  }
+  try {
+    const cloth = await getClothById(item.clothId);
+    item.name = cloth.name;
+  } catch (e) {
+    item.name = "";
   }
 };
 
@@ -190,10 +303,7 @@ const applyFilters = async () => {
 };
 
 const resetFilters = () => {
-  filters.value = {
-    supplierId: "",
-    supplierInvoice: "",
-  };
+  filters.value = { supplierId: "", supplierInvoice: "" };
   fetchEntries();
 };
 
@@ -216,6 +326,12 @@ const viewDetail = (entry: any) => {
   showDetailModal.value = true;
 };
 
+const openCreateModal = () => {
+  formEntry.value = { supplierInvoice: "", notes: "", supplierId: null };
+  formItems.value = [{ clothId: "", name: "", color: "", meters: 0, price: 0 }];
+  showCreateModal.value = true;
+};
+
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   return date.toLocaleString("es-CO", {
@@ -227,12 +343,47 @@ function formatDate(dateStr: string) {
   });
 }
 
-const openCreateModal = () => {
-  toast.info("Aquí abrirás el formulario para crear la entrada con items");
+const addItem = () => {
+  formItems.value.push({
+    clothId: "",
+    name: "",
+    color: "",
+    meters: 0,
+    price: 0,
+  });
+};
+
+const removeItem = (index: number) => {
+  formItems.value.splice(index, 1);
+};
+
+const submitFullEntry = async () => {
+  try {
+    const payload = {
+      entry: {
+        ...formEntry.value,
+        userId: authStore.userId,
+      },
+      items: formItems.value.map((item) => ({
+        clothEntryId: 0,
+        clothId: Number(item.clothId),
+        color: item.color,
+        metersAdded: item.meters,
+        price: item.price,
+      })),
+    };
+    await createFullClothEntry(payload);
+    toast.success("Entrada creada exitosamente");
+    showCreateModal.value = false;
+    fetchEntries();
+  } catch (e) {
+    toast.error("Error al crear la entrada");
+  }
 };
 
 onMounted(() => {
   fetchEntries();
+  fetchSuppliers();
 });
 </script>
 
