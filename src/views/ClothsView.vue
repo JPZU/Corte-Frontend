@@ -17,9 +17,6 @@
             {{ selectedCloth.name }}
           </span>
         </p>
-        <p class="text-capitalize">
-          <strong>Color: </strong> {{ selectedCloth.color }}
-        </p>
         <p><strong>Metros:</strong> {{ formatMeters(selectedCloth.meters) }}</p>
         <p>
           <strong
@@ -33,31 +30,7 @@
           >
         </p>
         <hr />
-        <p>
-          <strong>Usuario: </strong>
-          <span class="text-uppercase">
-            {{ selectedCloth.user?.name }}
-          </span>
-        </p>
-        <p class="text-capitalize">
-          <strong>Proveedor:</strong> {{ selectedCloth.supplier?.name }}
-        </p>
-        <p class="text-capitalize">
-          <strong>Factura proveedor: </strong>
-          <span class="text-uppercase">
-            {{ selectedCloth.supplierInvoice }}
-          </span>
-        </p>
-        <p class="text-capitalize">
-          <strong>Precio por metro:</strong>
-          {{ formatPrice(selectedCloth.price) }}
-        </p>
-
         <p><strong>Categoría:</strong> {{ selectedCloth.category?.name }}</p>
-        <p>
-          <strong>Notas adicionales:</strong>
-          {{ selectedCloth.notes }}
-        </p>
         <hr />
         <p>
           <strong>Creado:</strong> {{ formatDate(selectedCloth.createdAt) }}
@@ -93,13 +66,6 @@
             required
           />
           <input
-            v-model="formCloth.color"
-            type="text"
-            class="form-control mb-2"
-            placeholder="Color"
-            required
-          />
-          <input
             v-model.number="formCloth.meters"
             type="number"
             class="form-control mb-2"
@@ -107,14 +73,6 @@
             required
             min="0"
             step="0.01"
-          />
-          <input
-            v-model.number="formCloth.price"
-            type="number"
-            class="form-control mb-2"
-            placeholder="Precio por metro"
-            required
-            min="1000"
           />
           <select
             v-model="formCloth.category.categoryId"
@@ -130,33 +88,6 @@
               {{ cat.name }}
             </option>
           </select>
-
-          <select
-            v-model="formCloth.supplier.supplierId"
-            class="form-select mb-3"
-            required
-          >
-            <option value="" disabled>Seleccionar proveedor</option>
-            <option
-              v-for="sup in suppliers"
-              :key="sup.supplierId"
-              :value="sup.supplierId"
-            >
-              {{ sup.name }}
-            </option>
-          </select>
-          <input
-            v-model="formCloth.supplierInvoice"
-            type="text"
-            class="form-control mb-2"
-            placeholder="Número factura proveedor"
-          />
-          <textarea
-            v-model="formCloth.notes"
-            type="text"
-            class="form-control mb-2"
-            placeholder="Notas"
-          />
           <div class="form-check mb-3">
             <input
               class="form-check-input"
@@ -190,35 +121,17 @@
         <h5 class="card-title">Filtros de Búsqueda</h5>
         <div class="row g-3">
           <!-- Fila 1 -->
-          <div class="col-md-4">
-            <input
-              type="number"
-              class="form-control"
-              v-model.number="filters.userId"
-              placeholder="ID de Usuario"
-            />
-          </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <input
               type="text"
               class="form-control"
               v-model="filters.name"
-              placeholder="Nombre de la tela"
+              placeholder="🔤 Nombre de la tela"
             />
           </div>
-          <div class="col-md-4">
-            <input
-              type="text"
-              class="form-control"
-              v-model="filters.supplierInvoice"
-              placeholder="Número de factura"
-            />
-          </div>
-
-          <!-- Fila 2 -->
-          <div class="col-md-4">
+          <div class="col-md-6">
             <select v-model="filters.categoryId" class="form-select">
-              <option value="">-- Categoría --</option>
+              <option value="">🗂️ Categoría</option>
               <option
                 v-for="cat in categories"
                 :key="cat.categoryId"
@@ -228,29 +141,19 @@
               </option>
             </select>
           </div>
-          <div class="col-md-4">
-            <select v-model="filters.supplierId" class="form-select">
-              <option value="">-- Proveedor --</option>
-              <option
-                v-for="sup in suppliers"
-                :key="sup.supplierId"
-                :value="sup.supplierId"
-              >
-                {{ sup.name }}
-              </option>
-            </select>
-          </div>
-          <div class="col-md-4">
+
+          <!-- Fila 2 -->
+          <div class="col-md-6">
             <select v-model="filters.status" class="form-select">
-              <option value="">-- Estado --</option>
+              <option value="">📦 Estado</option>
               <option value="active">Activos</option>
               <option value="inactive">Inactivos</option>
             </select>
           </div>
-
-          <!-- Fila Botones -->
-          <div class="col-12 text-end">
-            <button class="btn btn-primary me-2" @click="applyFilters">
+          <div
+            class="col-md-6 text-end d-flex justify-content-end align-items-center gap-2"
+          >
+            <button class="btn btn-primary" @click="applyFilters">
               🔍 Buscar
             </button>
             <button class="btn btn-secondary" @click="resetFilters">
@@ -274,7 +177,6 @@
             <h5 class="card-title text-uppercase">{{ cloth.name }}</h5>
             <p class="card-text text-capitalize">
               <strong>ID:</strong> {{ cloth.clothId }}<br />
-              <strong>Color:</strong> {{ cloth.color }}<br />
               <strong>Metros:</strong> {{ formatMeters(cloth.meters) }}<br />
             </p>
             <div class="d-flex justify-content-center gap-2">
@@ -329,16 +231,9 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "@/store/auth";
 import { useToast } from "vue-toastification";
 import {
-  getClothByName,
-  getClothBySupplier,
-  getClothByCategory,
-  getIsActive,
-  getIsNotActive,
-  getAllCloths,
   getClothById, // ✅ ESTA LÍNEA
   createCloth,
   updateCloth,
-  getBySupplierInvoice,
   getAllClothsPaged,
   filterCloths,
 } from "@/services/ClothService";
@@ -365,10 +260,7 @@ const loadCategoriesAndSuppliers = async () => {
 
 const filters = ref({
   name: "",
-  supplierInvoice: "",
-  userId: null,
   categoryId: "",
-  supplierId: "",
   status: "", // "active", "inactive"
 });
 
@@ -392,13 +284,8 @@ const formCloth = ref({
   color: "",
   meters: null,
   notes: "",
-  price: null,
-  supplierInvoice: "",
   category: {
     categoryId: null,
-  },
-  supplier: {
-    supplierId: "",
   },
   isActive: true,
 });
@@ -435,10 +322,7 @@ const openCreateModal = () => {
     color: "",
     meters: null,
     notes: "",
-    price: null,
-    supplierInvoice: "",
     category: { categoryId: "" },
-    supplier: { supplierId: "" },
     isActive: true,
   };
   loadCategoriesAndSuppliers();
@@ -484,11 +368,7 @@ const submitCloth = async () => {
       meters: formCloth.value.meters,
       isActive: formCloth.value.isActive,
       notes: formCloth.value.notes,
-      price: formCloth.value.price,
-      supplierInvoice: formCloth.value.supplierInvoice,
-      userId: authStore.userId, // ✅ desde el store (o donde tengas guardado el usuario logueado)
       categoryId: formCloth.value.category.categoryId,
-      supplierId: formCloth.value.supplier.supplierId,
     };
 
     if (isEditing.value) {
@@ -519,23 +399,12 @@ const applyFilters = async () => {
     // Determinar si se están aplicando filtros
     filtersApplied.value =
       !!filters.value.name?.trim() ||
-      !!filters.value.supplierInvoice?.trim() ||
-      !!filters.value.userId ||
       !!filters.value.status ||
-      !!filters.value.categoryId ||
-      !!filters.value.supplierId;
+      !!filters.value.categoryId;
 
     // Agregar los filtros a los parámetros si existen
     if (filters.value.name?.trim()) {
       params.name = filters.value.name.trim();
-    }
-
-    if (filters.value.supplierInvoice?.trim()) {
-      params.supplierInvoice = filters.value.supplierInvoice.trim();
-    }
-
-    if (filters.value.userId) {
-      params.userId = filters.value.userId;
     }
 
     if (filters.value.status) {
@@ -544,10 +413,6 @@ const applyFilters = async () => {
 
     if (filters.value.categoryId) {
       params.categoryId = filters.value.categoryId;
-    }
-
-    if (filters.value.supplierId) {
-      params.supplierId = filters.value.supplierId;
     }
 
     // Hacer la solicitud
@@ -562,10 +427,7 @@ const applyFilters = async () => {
 const resetFilters = () => {
   filters.value = {
     name: "",
-    supplierInvoice: "",
-    userId: null,
     categoryId: "",
-    supplierId: "",
     status: "",
   };
   filtersApplied.value = false;
