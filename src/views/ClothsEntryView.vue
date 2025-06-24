@@ -70,6 +70,13 @@
               <button class="btn btn-sm btn-info" @click="viewDetail(entry)">
                 Ver
               </button>
+              <button
+                class="btn btn-sm btn-warning ms-2"
+                @click="openEditModal(entry)"
+                v-if="canEdit"
+              >
+                Editar
+              </button>
             </td>
           </tr>
         </tbody>
@@ -85,9 +92,9 @@
       >
         ←
       </button>
-      <span class="align-self-center"
-        >Página {{ currentPage + 1 }} de {{ totalPages }}</span
-      >
+      <span class="align-self-center">
+        Página {{ currentPage + 1 }} de {{ totalPages }}
+      </span>
       <button
         class="btn btn-outline-primary ms-2"
         @click="nextPage"
@@ -290,9 +297,13 @@ import {
   getClothsEntryBySupplierInvoice,
 } from "@/services/ClothEntryService";
 import { createFullClothEntry } from "@/services/ClothEntryFullService";
+import {
+  createClothEntryItem,
+  updateClothEntryItem,
+  getClothsEntryItemByClothEntryId,
+} from "@/services/ClothEntryItemService";
 import { getAllSuppliers } from "@/services/SupplierService";
 import { getClothById } from "@/services/ClothService";
-import { getClothsEntryItemByClothEntryId } from "@/services/ClothEntryItemService";
 
 const toast = useToast();
 const authStore = useAuthStore();
@@ -312,6 +323,8 @@ const selectedItems = ref<any[]>([]);
 const showCreateModal = ref(false);
 const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
 const formItems = ref<any[]>([]);
+const isEditing = ref(false);
+const editingEntryId = ref<number | null>(null);
 
 const canCreate = computed(() =>
   ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role)
@@ -403,21 +416,38 @@ const viewDetail = async (entry: any) => {
 };
 
 const openCreateModal = () => {
+  isEditing.value = false;
+  editingEntryId.value = null;
   formEntry.value = { supplierInvoice: "", notes: "", supplierId: null };
   formItems.value = [{ clothId: "", name: "", color: "", meters: 0, price: 0 }];
   showCreateModal.value = true;
 };
 
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleString("es-CO", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const openEditModal = async (entry: any) => {
+  try {
+    isEditing.value = true;
+    editingEntryId.value = entry.clothEntryId;
+    formEntry.value = {
+      supplierInvoice: entry.supplierInvoice,
+      notes: entry.notes,
+      supplierId: entry.supplier?.supplierId || null,
+    };
+
+    const items = await getClothsEntryItemByClothEntryId(entry.clothEntryId);
+    formItems.value = items.map((item: any) => ({
+      itemClothEntryId: item.itemClothEntryId,
+      clothId: item.cloth?.clothId,
+      name: item.cloth?.name,
+      color: item.color,
+      meters: item.metersAdded,
+      price: item.price,
+    }));
+
+    showCreateModal.value = true;
+  } catch (e) {
+    toast.error("No se pudo cargar la entrada para editar");
+  }
+};
 
 const addItem = () => {
   formItems.value.push({
@@ -435,27 +465,62 @@ const removeItem = (index: number) => {
 
 const submitFullEntry = async () => {
   try {
-    const payload = {
-      entry: {
-        ...formEntry.value,
-        userId: authStore.userId,
-      },
-      items: formItems.value.map((item) => ({
-        clothEntryId: 0,
-        clothId: Number(item.clothId),
-        color: item.color,
-        metersAdded: item.meters,
-        price: item.price,
-      })),
-    };
-    await createFullClothEntry(payload);
-    toast.success("Entrada creada exitosamente");
+    if (!isEditing.value) {
+      const payload = {
+        entry: {
+          ...formEntry.value,
+          userId: authStore.userId,
+        },
+        items: formItems.value.map((item) => ({
+          clothEntryId: 0,
+          clothId: Number(item.clothId),
+          color: item.color,
+          metersAdded: item.meters,
+          price: item.price,
+        })),
+      };
+      await createFullClothEntry(payload);
+      toast.success("Entrada creada exitosamente");
+    } else {
+      for (const item of formItems.value) {
+        if (item.itemClothEntryId) {
+          await updateClothEntryItem({
+            itemClothEntryId: item.itemClothEntryId,
+            clothId: Number(item.clothId),
+            color: item.color,
+            metersAdded: item.meters,
+            price: item.price,
+          });
+        } else {
+          await createClothEntryItem({
+            clothEntryId: editingEntryId.value,
+            clothId: Number(item.clothId),
+            color: item.color,
+            metersAdded: item.meters,
+            price: item.price,
+          });
+        }
+      }
+      toast.success("Entrada actualizada exitosamente");
+    }
+
     showCreateModal.value = false;
     fetchEntries();
   } catch (e) {
-    toast.error("Error al crear la entrada");
+    toast.error("Error al guardar la entrada");
   }
 };
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleString("es-CO", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 onMounted(() => {
   fetchEntries();
