@@ -472,6 +472,7 @@ const submitFullEntry = async () => {
       entry: {
         ...formEntry.value,
         userId: authStore.userId,
+        approve: true,
       },
       items: formItems.value.map((item) => ({
         clothEntryId: 0,
@@ -486,8 +487,11 @@ const submitFullEntry = async () => {
 
     showCreateModal.value = false;
     fetchEntries();
-  } catch (e) {
-    toast.error("Error al guardar la entrada");
+  } catch (e: any) {
+    const message =
+      e?.response?.data?.message || "Error desconocido al guardar la entrada";
+    // console.error("Error al guardar la entrada:", e);
+    toast.error(message);
   }
 };
 
