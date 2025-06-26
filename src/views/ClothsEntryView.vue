@@ -55,27 +55,37 @@
             <th>Usuario</th>
             <th>Notas</th>
             <th>Fecha de creación</th>
+            <th>Estado</th>
+            <!-- NUEVA COLUMNA -->
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entry in entries" :key="entry.clothEntryId">
+          <tr
+            v-for="entry in entries"
+            :key="entry.clothEntryId"
+            :class="{ 'table-danger': !entry.approve }"
+          >
             <td>{{ entry.clothEntryId }}</td>
             <td>{{ entry.supplierInvoice }}</td>
             <td>{{ entry.supplier?.name }}</td>
             <td>{{ entry.user?.name }}</td>
             <td>{{ entry.notes }}</td>
             <td>{{ formatDate(entry.createdAt) }}</td>
+            <td>
+              <span v-if="entry.approve">Activa</span>
+              <span v-else class="text-danger fw-bold">Anulada</span>
+            </td>
             <td class="text-center">
               <button class="btn btn-sm btn-info" @click="viewDetail(entry)">
                 Ver
               </button>
               <button
-                class="btn btn-sm btn-warning ms-2"
-                @click="openEditModal(entry)"
-                v-if="canEdit"
+                class="btn btn-sm btn-danger ms-2"
+                @click="invalidateEntry(entry)"
+                v-if="canEdit && entry.approve"
               >
-                Editar
+                Anular
               </button>
             </td>
           </tr>
@@ -272,8 +282,9 @@
             + Agregar Ítem
           </button>
 
+          <!-- Por este: -->
           <button type="submit" class="btn btn-success w-100">
-            {{ isEditing ? "Guardar Cambios" : "Crear Entrada" }}
+            Crear Entrada
           </button>
 
           <button
@@ -298,9 +309,9 @@ import {
   getClothsEntryBySupplierInvoice,
 } from "@/services/ClothEntryService";
 import { createFullClothEntry } from "@/services/ClothEntryFullService";
+import { updateClothEntry } from "@/services/ClothEntryService";
 import {
   createClothEntryItem,
-  updateClothEntryItem,
   getClothsEntryItemByClothEntryId,
 } from "@/services/ClothEntryItemService";
 import { getAllSuppliers } from "@/services/SupplierService";
@@ -324,8 +335,6 @@ const selectedItems = ref<any[]>([]);
 const showCreateModal = ref(false);
 const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
 const formItems = ref<any[]>([]);
-const isEditing = ref(false);
-const editingEntryId = ref<number | null>(null);
 
 const canCreate = computed(() =>
   ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role)
@@ -417,36 +426,51 @@ const viewDetail = async (entry: any) => {
 };
 
 const openCreateModal = () => {
-  isEditing.value = false;
-  editingEntryId.value = null;
   formEntry.value = { supplierInvoice: "", notes: "", supplierId: null };
   formItems.value = [{ clothId: "", name: "", color: "", meters: 0, price: 0 }];
   showCreateModal.value = true;
 };
 
-const openEditModal = async (entry: any) => {
+// const openEditModal = async (entry: any) => {
+//   try {
+//     if (!entry.approve) {
+//       toast.warning("No se puede editar una entrada anulada.");
+//       return;
+//     }
+//     formEntry.value = {
+//       supplierInvoice: entry.supplierInvoice,
+//       notes: entry.notes,
+//       supplierId: entry.supplier?.supplierId || null,
+//     };
+
+//     const items = await getClothsEntryItemByClothEntryId(entry.clothEntryId);
+//     formItems.value = items.map((item: any) => ({
+//       itemClothEntryId: item.itemClothEntryId,
+//       clothId: item.cloth?.clothId,
+//       name: item.cloth?.name,
+//       color: item.color,
+//       meters: item.metersAdded,
+//       price: item.price,
+//     }));
+
+//     showCreateModal.value = true;
+//   } catch (e) {
+//     toast.error("No se pudo cargar la entrada para editar");
+//   }
+// };
+
+const invalidateEntry = async (entry: any) => {
   try {
-    isEditing.value = true;
-    editingEntryId.value = entry.clothEntryId;
-    formEntry.value = {
-      supplierInvoice: entry.supplierInvoice,
-      notes: entry.notes,
-      supplierId: entry.supplier?.supplierId || null,
-    };
-
-    const items = await getClothsEntryItemByClothEntryId(entry.clothEntryId);
-    formItems.value = items.map((item: any) => ({
-      itemClothEntryId: item.itemClothEntryId,
-      clothId: item.cloth?.clothId,
-      name: item.cloth?.name,
-      color: item.color,
-      meters: item.metersAdded,
-      price: item.price,
-    }));
-
-    showCreateModal.value = true;
-  } catch (e) {
-    toast.error("No se pudo cargar la entrada para editar");
+    await updateClothEntry({
+      ...entry,
+      approve: false,
+      userId: authStore.userId,
+      supplierId: entry.supplier?.supplierId,
+    });
+    toast.success("Entrada anulada correctamente");
+    fetchEntries();
+  } catch (error) {
+    toast.error("Error al anular la entrada");
   }
 };
 
@@ -466,44 +490,21 @@ const removeItem = (index: number) => {
 
 const submitFullEntry = async () => {
   try {
-    if (!isEditing.value) {
-      const payload = {
-        entry: {
-          ...formEntry.value,
-          userId: authStore.userId,
-        },
-        items: formItems.value.map((item) => ({
-          clothEntryId: 0,
-          clothId: Number(item.clothId),
-          color: item.color,
-          metersAdded: item.meters,
-          price: item.price,
-        })),
-      };
-      await createFullClothEntry(payload);
-      toast.success("Entrada creada exitosamente");
-    } else {
-      for (const item of formItems.value) {
-        if (item.itemClothEntryId) {
-          await updateClothEntryItem({
-            itemClothEntryId: item.itemClothEntryId,
-            clothId: Number(item.clothId),
-            color: item.color,
-            metersAdded: item.meters,
-            price: item.price,
-          });
-        } else {
-          await createClothEntryItem({
-            clothEntryId: editingEntryId.value,
-            clothId: Number(item.clothId),
-            color: item.color,
-            metersAdded: item.meters,
-            price: item.price,
-          });
-        }
-      }
-      toast.success("Entrada actualizada exitosamente");
-    }
+    const payload = {
+      entry: {
+        ...formEntry.value,
+        userId: authStore.userId,
+      },
+      items: formItems.value.map((item) => ({
+        clothEntryId: 0,
+        clothId: Number(item.clothId),
+        color: item.color,
+        metersAdded: item.meters,
+        price: item.price,
+      })),
+    };
+    await createFullClothEntry(payload);
+    toast.success("Entrada creada exitosamente");
 
     showCreateModal.value = false;
     fetchEntries();

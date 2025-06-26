@@ -15,11 +15,6 @@ export async function createClothEntryItem(data: any) {
   return response.data;
 }
 
-export async function updateClothEntryItem(data: any) {
-  const response = await api.put("/cloths-entry-item/update", data);
-  return response.data;
-}
-
 export async function deleteClothEntryItem(id: number) {
   const response = await api.delete(`/cloths-entry-item/delete/${id}`);
   return response.data;
