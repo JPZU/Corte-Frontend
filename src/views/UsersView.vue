@@ -118,8 +118,8 @@
       </div>
     </div>
 
-    <table class="table">
-      <thead>
+    <table class="table table-bordered align-middle">
+      <thead class="table-dark text-center">
         <tr>
           <th>ID</th>
           <th>Nombre</th>
@@ -134,7 +134,7 @@
           <td>{{ user.name }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.role }}</td>
-          <td>
+          <td class="text-center">
             <button
               class="btn btn-sm btn-warning me-2"
               @click="openEditModal(user.userId)"
