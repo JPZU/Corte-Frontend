@@ -431,35 +431,13 @@ const openCreateModal = () => {
   showCreateModal.value = true;
 };
 
-// const openEditModal = async (entry: any) => {
-//   try {
-//     if (!entry.approve) {
-//       toast.warning("No se puede editar una entrada anulada.");
-//       return;
-//     }
-//     formEntry.value = {
-//       supplierInvoice: entry.supplierInvoice,
-//       notes: entry.notes,
-//       supplierId: entry.supplier?.supplierId || null,
-//     };
-
-//     const items = await getClothsEntryItemByClothEntryId(entry.clothEntryId);
-//     formItems.value = items.map((item: any) => ({
-//       itemClothEntryId: item.itemClothEntryId,
-//       clothId: item.cloth?.clothId,
-//       name: item.cloth?.name,
-//       color: item.color,
-//       meters: item.metersAdded,
-//       price: item.price,
-//     }));
-
-//     showCreateModal.value = true;
-//   } catch (e) {
-//     toast.error("No se pudo cargar la entrada para editar");
-//   }
-// };
-
 const invalidateEntry = async (entry: any) => {
+  const confirmed = window.confirm(
+    `¿Estás seguro de que deseas anular la entrada con factura "${entry.supplierInvoice}"? Esta acción no se puede deshacer.`
+  );
+
+  if (!confirmed) return;
+
   try {
     await updateClothEntry({
       ...entry,
