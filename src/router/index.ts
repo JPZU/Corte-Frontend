@@ -4,6 +4,7 @@ import HomeView from "@/views/HomeView.vue";
 import UsersView from "@/views/UsersView.vue";
 import ClothsView from "@/views/ClothsView.vue";
 import ClothsEntryView from "@/views/ClothsEntryView.vue";
+import ReferencesView from "@/views/ReferencesView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -41,7 +42,16 @@ const routes: RouteRecordRaw[] = [
     component: ClothsEntryView,
     meta: {
       requiresAuth: true,
-      roles: ["SUPER_ADMIN", "ADMIN", "EDITOR"],
+      roles: ["SUPER_ADMIN", "ADMIN", "VIEWER", "EDITOR"],
+    },
+  },
+  {
+    path: "/references",
+    name: "References",
+    component: ReferencesView,
+    meta: {
+      requiresAuth: true,
+      roles: ["SUPER_ADMIN", "ADMIN", "VIEWER", "EDITOR"],
     },
   },
 
