@@ -148,39 +148,50 @@
     >
       <div
         class="modal-content p-4 bg-white rounded shadow"
-        style="width: 800px"
+        style="width: 840px"
       >
-        <h5>Detalle de Entrada</h5>
+        <h5 class="mb-3">Detalle de Entrada</h5>
+
         <p><strong>ID:</strong> {{ selectedEntry.clothEntryId }}</p>
         <p><strong>Factura:</strong> {{ selectedEntry.supplierInvoice }}</p>
-        <p><strong>Proveedor:</strong> {{ selectedEntry.supplier?.name }}</p>
+        <p>
+          <strong>Proveedor:</strong>
+          {{
+            selectedEntry.supplier
+              ? `${selectedEntry.supplier.name} (ID: ${selectedEntry.supplier.supplierId})`
+              : "—"
+          }}
+        </p>
         <p><strong>Usuario:</strong> {{ selectedEntry.user?.name }}</p>
-        <p><strong>Notas:</strong> {{ selectedEntry.notes }}</p>
+        <p><strong>Notas:</strong> {{ selectedEntry.notes || "—" }}</p>
         <p><strong>Fecha:</strong> {{ formatDate(selectedEntry.createdAt) }}</p>
 
-        <h6>Ítems</h6>
-        <table class="table table-bordered mt-3">
-          <thead>
-            <tr>
-              <th>Código Tela</th>
-              <th>Nombre</th>
-              <th>Color</th>
-              <th>Metros</th>
-              <th>Precio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="it in selectedItems" :key="it.itemClothEntryId">
-              <td>{{ it.cloth?.clothId }}</td>
-              <td>{{ it.cloth?.name || "Desconocido" }}</td>
-              <td>{{ it.color }}</td>
-              <td>{{ it.metersAdded }}</td>
-              <td>{{ it.price }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Tabla bonita -->
+        <h6 class="mt-4">Ítems</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover align-middle">
+            <thead class="table-light text-center">
+              <tr>
+                <th>Código Tela</th>
+                <th>Nombre</th>
+                <th>Color</th>
+                <th class="text-end">Metros</th>
+                <th class="text-end">Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="it in selectedItems" :key="it.itemClothEntryId">
+                <td>{{ it.cloth?.clothId }}</td>
+                <td>{{ it.cloth?.name || "Desconocido" }}</td>
+                <td>{{ it.color }}</td>
+                <td class="text-end">{{ formatMeters(it.metersAdded) }}</td>
+                <td class="text-end">{{ formatPrice(it.price) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="text-end">
+        <div class="text-end mt-3">
           <button class="btn btn-secondary" @click="showDetailModal = false">
             Cerrar
           </button>
@@ -482,7 +493,7 @@ async function viewDetail(entry: any) {
 
 /* ──────────── ANULAR ──────────── */
 async function invalidateEntry(entry: any) {
-  if (!window.confirm(`¿Anular entrada ${entry.clothEntryId}?`)) return;
+  if (!window.confirm(`¿Anular entrada ${entry.supplierInvoice}?`)) return;
   try {
     await updateClothEntry({
       ...entry,
@@ -568,6 +579,21 @@ function formatDate(str: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatMeters(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function formatPrice(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+  }).format(n);
 }
 
 /* ──────────── inicio ──────────── */
