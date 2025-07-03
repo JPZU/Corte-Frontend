@@ -269,7 +269,7 @@
                   class="btn btn-danger w-100"
                   @click.prevent="removeItem(index)"
                 >
-                  ✖
+                  X
                 </button>
               </div>
             </div>

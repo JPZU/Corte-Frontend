@@ -111,8 +111,8 @@
     </div>
 
     <div class="mb-3" v-if="canCreate">
-      <button class="btn btn-primary" @click="openCreateModal">
-        Crear Tela
+      <button class="btn btn-success" @click="openCreateModal">
+        + Crear Tela
       </button>
     </div>
 
