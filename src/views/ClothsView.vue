@@ -65,20 +65,23 @@
             placeholder="Nombre"
             required
           />
-          <select
-            v-model="formCloth.category.categoryId"
-            class="form-select mb-2"
-            required
-          >
-            <option value="" disabled>Seleccionar categoría</option>
-            <option
-              v-for="cat in categories"
-              :key="cat.categoryId"
-              :value="cat.categoryId"
+          <div class="d-flex align-items-center mb-2">
+            <label class="me-2 mb-0 text-nowrap">Categoría:</label>
+            <select
+              v-model="formCloth.category.categoryId"
+              class="form-select flex-grow-1"
+              required
             >
-              {{ cat.name }}
-            </option>
-          </select>
+              <option disabled value="">Seleccionar categoría</option>
+              <option
+                v-for="cat in categories"
+                :key="cat.categoryId"
+                :value="cat.categoryId"
+              >
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
           <div class="form-check mb-3">
             <input
               class="form-check-input"
