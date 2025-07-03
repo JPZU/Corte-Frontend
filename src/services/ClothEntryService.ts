@@ -36,9 +36,14 @@ export async function getClothsEntryBySupplierInvoice(supplierInvoice: string) {
   return response.data;
 }
 
-export async function getClothsEntryByCreatedAtBetween(data: any) {
-  const response = await api.get("/cloths-entry/created-between", data);
-  return response.data;
+export async function getClothsEntryByCreatedAtBetween(
+  startDate: string,
+  endDate: string
+) {
+  const { data } = await api.get("/cloths-entry/created-between", {
+    params: { startDate, endDate },
+  });
+  return data;
 }
 
 export async function getAllClothsEntryPaged(page = 0, size = 16) {

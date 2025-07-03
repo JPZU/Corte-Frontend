@@ -2,37 +2,57 @@
   <div>
     <h2 class="mb-4">Entradas de Telas</h2>
 
-    <!-- Botón Crear Entrada -->
+    <!-- ▸ Botón CREAR -->
     <div class="mb-3" v-if="canCreate">
       <button class="btn btn-success" @click="openCreateModal">
         + Nueva Entrada
       </button>
     </div>
 
-    <!-- Filtros -->
+    <!-- ▸ Filtros -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
         <h5 class="card-title">Filtros de búsqueda</h5>
+
         <div class="row g-3">
           <div class="col-md-4">
             <input
+              v-model="filters.supplierId"
               type="text"
               class="form-control"
-              v-model="filters.supplierId"
-              placeholder="Id Proveedor"
+              placeholder="ID Proveedor"
             />
           </div>
           <div class="col-md-4">
             <input
+              v-model="filters.supplierInvoice"
               type="text"
               class="form-control"
-              v-model="filters.supplierInvoice"
               placeholder="Número de factura"
             />
           </div>
-          <div
-            class="col-md-4 text-end d-flex justify-content-end align-items-center gap-2"
-          >
+        </div>
+
+        <!-- Fila rango de fechas -->
+        <div class="row g-3 mt-2">
+          <div class="col-md-4">
+            <input
+              v-model="dateRange.start"
+              type="date"
+              class="form-control"
+              placeholder="Fecha inicio"
+            />
+          </div>
+          <div class="col-md-4">
+            <input
+              v-model="dateRange.end"
+              type="date"
+              class="form-control"
+              placeholder="Fecha fin"
+            />
+          </div>
+
+          <div class="col-md-4 d-flex justify-content-end gap-2">
             <button class="btn btn-primary" @click="applyFilters">
               🔍 Buscar
             </button>
@@ -44,7 +64,7 @@
       </div>
     </div>
 
-    <!-- Tabla -->
+    <!-- ▸ Tabla -->
     <div class="table-responsive">
       <table class="table table-bordered align-middle">
         <thead class="table-dark text-center">
@@ -56,34 +76,33 @@
             <th>Notas</th>
             <th>Fecha de creación</th>
             <th>Estado</th>
-            <!-- NUEVA COLUMNA -->
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="entry in entries"
-            :key="entry.clothEntryId"
-            :class="{ 'table-danger': !entry.approve }"
+            v-for="e in entries"
+            :key="e.clothEntryId"
+            :class="{ 'table-danger': !e.approve }"
           >
-            <td>{{ entry.clothEntryId }}</td>
-            <td>{{ entry.supplierInvoice }}</td>
-            <td>{{ entry.supplier?.name }}</td>
-            <td>{{ entry.user?.name }}</td>
-            <td>{{ entry.notes }}</td>
-            <td>{{ formatDate(entry.createdAt) }}</td>
+            <td>{{ e.clothEntryId }}</td>
+            <td>{{ e.supplierInvoice }}</td>
+            <td>{{ e.supplier?.name }}</td>
+            <td>{{ e.user?.name }}</td>
+            <td>{{ e.notes }}</td>
+            <td>{{ formatDate(e.createdAt) }}</td>
             <td>
-              <span v-if="entry.approve">Activa</span>
+              <span v-if="e.approve">Activa</span>
               <span v-else class="text-danger fw-bold">Anulada</span>
             </td>
             <td class="text-center">
-              <button class="btn btn-sm btn-info" @click="viewDetail(entry)">
+              <button class="btn btn-sm btn-info" @click="viewDetail(e)">
                 Ver
               </button>
               <button
+                v-if="canEdit && e.approve"
                 class="btn btn-sm btn-danger ms-2"
-                @click="invalidateEntry(entry)"
-                v-if="canEdit && entry.approve"
+                @click="invalidateEntry(e)"
               >
                 Anular
               </button>
@@ -93,7 +112,7 @@
       </table>
     </div>
 
-    <!-- Paginación -->
+    <!-- ▸ Paginación -->
     <div class="d-flex justify-content-center mt-4">
       <button
         class="btn btn-outline-primary me-2"
@@ -102,9 +121,9 @@
       >
         ←
       </button>
-      <span class="align-self-center">
-        Página {{ currentPage + 1 }} de {{ totalPages }}
-      </span>
+      <span class="align-self-center"
+        >Página {{ currentPage + 1 }} de {{ totalPages }}</span
+      >
       <button
         class="btn btn-outline-primary ms-2"
         @click="nextPage"
@@ -114,13 +133,13 @@
       </button>
     </div>
 
-    <!-- Modal Detalle Entrada -->
+    <!-- ▸ Modal DETALLE -->
     <div
       v-if="showDetailModal && selectedEntry"
       class="modal-backdrop d-flex justify-content-center align-items-center"
     >
       <div
-        class="modal-content p-4 rounded bg-white shadow"
+        class="modal-content p-4 bg-white rounded shadow"
         style="width: 800px"
       >
         <h5>Detalle de Entrada</h5>
@@ -143,12 +162,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in selectedItems" :key="item.itemClothEntryId">
-              <td>{{ item.cloth?.clothId }}</td>
-              <td>{{ item.cloth?.name || "Desconocido" }}</td>
-              <td>{{ item.color }}</td>
-              <td>{{ item.metersAdded }}</td>
-              <td>{{ item.price }}</td>
+            <tr v-for="it in selectedItems" :key="it.itemClothEntryId">
+              <td>{{ it.cloth?.clothId }}</td>
+              <td>{{ it.cloth?.name || "Desconocido" }}</td>
+              <td>{{ it.color }}</td>
+              <td>{{ it.metersAdded }}</td>
+              <td>{{ it.price }}</td>
             </tr>
           </tbody>
         </table>
@@ -190,20 +209,23 @@
             />
           </div>
           <div class="mb-3">
-            <select
-              v-model.number="formEntry.supplierId"
-              class="form-select"
-              required
-            >
-              <option value="" disabled>Seleccione un proveedor</option>
-              <option
-                v-for="s in suppliers"
-                :key="s.supplierId"
-                :value="s.supplierId"
+            <div class="d-flex align-items-center mb-2">
+              <label class="me-2 mb-0 text-nowrap">Proveedor:</label>
+              <select
+                v-model.number="formEntry.supplierId"
+                class="form-select"
+                required
               >
-                {{ s.name }} (ID: {{ s.supplierId }})
-              </option>
-            </select>
+                <option value="" disabled>Seleccione un proveedor</option>
+                <option
+                  v-for="s in suppliers"
+                  :key="s.supplierId"
+                  :value="s.supplierId"
+                >
+                  {{ s.name }} (ID: {{ s.supplierId }})
+                </option>
+              </select>
+            </div>
           </div>
 
           <h6>Ítems</h6>
@@ -303,20 +325,21 @@
 import { ref, onMounted, computed } from "vue";
 import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/store/auth";
+
 import {
   getAllClothsEntryPaged,
   getClothsEntryBySupplierId,
   getClothsEntryBySupplierInvoice,
+  updateClothEntry,
+  getClothsEntryByCreatedAtBetween,
 } from "@/services/ClothEntryService";
 import { createFullClothEntry } from "@/services/ClothEntryFullService";
-import { updateClothEntry } from "@/services/ClothEntryService";
-import {
-  createClothEntryItem,
-  getClothsEntryItemByClothEntryId,
-} from "@/services/ClothEntryItemService";
+import { getClothsEntryItemByClothEntryId } from "@/services/ClothEntryItemService";
+
 import { getAllSuppliers } from "@/services/SupplierService";
 import { getClothById } from "@/services/ClothService";
 
+/* ──────────── estado base ──────────── */
 const toast = useToast();
 const authStore = useAuthStore();
 
@@ -324,18 +347,12 @@ const entries = ref<any[]>([]);
 const currentPage = ref(0);
 const pageSize = ref(10);
 const totalPages = ref(1);
+
 const suppliers = ref<any[]>([]);
-
 const filters = ref({ supplierId: "", supplierInvoice: "" });
+const dateRange = ref({ start: "", end: "" });
 
-const showDetailModal = ref(false);
-const selectedEntry = ref<any>(null);
-const selectedItems = ref<any[]>([]);
-
-const showCreateModal = ref(false);
-const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
-const formItems = ref<any[]>([]);
-
+/* ──────────── permisos ──────────── */
 const canCreate = computed(() =>
   ["SUPER_ADMIN", "ADMIN", "EDITOR"].includes(authStore.role)
 );
@@ -343,101 +360,121 @@ const canEdit = computed(() =>
   ["SUPER_ADMIN", "ADMIN"].includes(authStore.role)
 );
 
-const fetchEntries = async () => {
+/* ──────────── tablas y paginación ──────────── */
+async function fetchEntries() {
   try {
     const res = await getAllClothsEntryPaged(currentPage.value, pageSize.value);
     entries.value = res.data;
     totalPages.value = res.totalPages;
-  } catch (error) {
+  } catch {
     toast.error("Error al cargar las entradas");
   }
-};
-
-const fetchSuppliers = async () => {
-  try {
-    suppliers.value = await getAllSuppliers();
-  } catch (error) {
-    toast.error("Error cargando proveedores");
-  }
-};
-
-const loadClothName = async (item: any) => {
-  if (!item.clothId) {
-    item.name = "";
-    return;
-  }
-  try {
-    const cloth = await getClothById(item.clothId);
-    item.name = cloth.name;
-  } catch (e) {
-    item.name = "";
-  }
-};
-
-const applyFilters = async () => {
-  try {
-    if (filters.value.supplierId) {
-      const result = await getClothsEntryBySupplierId(filters.value.supplierId);
-      entries.value = result ? [result] : [];
-      return;
-    }
-    if (filters.value.supplierInvoice) {
-      const result = await getClothsEntryBySupplierInvoice(
-        filters.value.supplierInvoice
-      );
-      entries.value = result ? [result] : [];
-      return;
-    }
-    fetchEntries();
-  } catch (error) {
-    toast.error("Error al aplicar filtros");
-  }
-};
-
-const resetFilters = () => {
-  filters.value = { supplierId: "", supplierInvoice: "" };
-  fetchEntries();
-};
-
-const previousPage = () => {
+}
+function previousPage() {
   if (currentPage.value > 0) {
     currentPage.value--;
     fetchEntries();
   }
-};
-
-const nextPage = () => {
+}
+function nextPage() {
   if (currentPage.value < totalPages.value - 1) {
     currentPage.value++;
     fetchEntries();
   }
-};
+}
 
-const viewDetail = async (entry: any) => {
+/* ──────────── proveedores ──────────── */
+async function fetchSuppliers() {
+  try {
+    suppliers.value = await getAllSuppliers();
+  } catch {
+    toast.error("Error cargando proveedores");
+  }
+}
+
+/* ──────────── filtros ──────────── */
+async function applyFilters() {
+  currentPage.value = 0;
+
+  const hasDates = !!dateRange.value.start && !!dateRange.value.end;
+  if (hasDates) {
+    try {
+      const list = await getClothsEntryByCreatedAtBetween(
+        `${dateRange.value.start}T00:00:00`,
+        `${dateRange.value.end}T23:59:59`
+      );
+
+      const sup = filters.value.supplierId.trim();
+      const inv = filters.value.supplierInvoice.trim().toUpperCase();
+
+      entries.value = list.filter((e: any) => {
+        const okSup = sup ? e.supplier?.supplierId?.toString() === sup : true;
+        const okInv = inv
+          ? e.supplierInvoice.toUpperCase().includes(inv)
+          : true;
+        return okSup && okInv;
+      });
+
+      totalPages.value = 1;
+      return;
+    } catch {
+      toast.error("Error filtrando por fechas");
+    }
+  }
+
+  if (filters.value.supplierId) {
+    try {
+      const res = await getClothsEntryBySupplierId(filters.value.supplierId);
+      entries.value = res ? [res] : [];
+      totalPages.value = 1;
+    } catch {
+      toast.error("Error al filtrar por proveedor");
+    }
+    return;
+  }
+
+  if (filters.value.supplierInvoice) {
+    try {
+      const res = await getClothsEntryBySupplierInvoice(
+        filters.value.supplierInvoice
+      );
+      entries.value = res ? [res] : [];
+      totalPages.value = 1;
+    } catch {
+      toast.error("Error al filtrar por factura");
+    }
+    return;
+  }
+
+  fetchEntries();
+}
+
+function resetFilters() {
+  filters.value = { supplierId: "", supplierInvoice: "" };
+  dateRange.value = { start: "", end: "" };
+  fetchEntries();
+}
+
+/* ──────────── DETALLE ──────────── */
+const showDetailModal = ref(false);
+const selectedEntry = ref<any>(null);
+const selectedItems = ref<any[]>([]);
+
+async function viewDetail(entry: any) {
   try {
     selectedEntry.value = entry;
     selectedItems.value = await getClothsEntryItemByClothEntryId(
       entry.clothEntryId
     );
     showDetailModal.value = true;
-  } catch (e) {
-    toast.error("No se pudo cargar el detalle de los ítems");
+  } catch {
+    toast.error("No se pudo cargar el detalle");
   }
-};
+}
 
-const openCreateModal = () => {
-  formEntry.value = { supplierInvoice: "", notes: "", supplierId: null };
-  formItems.value = [{ clothId: "", name: "", color: "", meters: 0, price: 0 }];
-  showCreateModal.value = true;
-};
-
-const invalidateEntry = async (entry: any) => {
-  const confirmed = window.confirm(
-    `¿Estás seguro de que deseas anular la entrada con factura "${entry.supplierInvoice}"? Esta acción no se puede deshacer.`
-  );
-
-  if (!confirmed) return;
-
+/* ──────────── ANULAR ──────────── */
+async function invalidateEntry(entry: any) {
+  if (!window.confirm(`¿Anular entrada ${entry.clothEntryId}?`)) return;
   try {
     await updateClothEntry({
       ...entry,
@@ -445,14 +482,25 @@ const invalidateEntry = async (entry: any) => {
       userId: authStore.userId,
       supplierId: entry.supplier?.supplierId,
     });
-    toast.success("Entrada anulada correctamente");
+    toast.success("Entrada anulada");
     fetchEntries();
-  } catch (error) {
-    toast.error("Error al anular la entrada");
+  } catch {
+    toast.error("Error al anular entrada");
   }
-};
+}
 
-const addItem = () => {
+/* ──────────── CREAR Entrada completa ──────────── */
+const showCreateModal = ref(false);
+const formEntry = ref({ supplierInvoice: "", notes: "", supplierId: null });
+const formItems = ref<any[]>([]);
+
+function openCreateModal() {
+  formEntry.value = { supplierInvoice: "", notes: "", supplierId: null };
+  formItems.value = [{ clothId: "", name: "", color: "", meters: 0, price: 0 }];
+  showCreateModal.value = true;
+}
+
+function addItem() {
   formItems.value.push({
     clothId: "",
     name: "",
@@ -460,13 +508,25 @@ const addItem = () => {
     meters: 0,
     price: 0,
   });
-};
+}
+function removeItem(i: number) {
+  formItems.value.splice(i, 1);
+}
 
-const removeItem = (index: number) => {
-  formItems.value.splice(index, 1);
-};
+async function loadClothName(item: any) {
+  if (!item.clothId) {
+    item.name = "";
+    return;
+  }
+  try {
+    const c = await getClothById(item.clothId);
+    item.name = c.name;
+  } catch {
+    item.name = "";
+  }
+}
 
-const submitFullEntry = async () => {
+async function submitFullEntry() {
   try {
     const payload = {
       entry: {
@@ -474,30 +534,26 @@ const submitFullEntry = async () => {
         userId: authStore.userId,
         approve: true,
       },
-      items: formItems.value.map((item) => ({
+      items: formItems.value.map((it: any) => ({
         clothEntryId: 0,
-        clothId: Number(item.clothId),
-        color: item.color,
-        metersAdded: item.meters,
-        price: item.price,
+        clothId: Number(it.clothId),
+        color: it.color,
+        metersAdded: it.meters,
+        price: it.price,
       })),
     };
     await createFullClothEntry(payload);
-    toast.success("Entrada creada exitosamente");
-
+    toast.success("Entrada creada");
     showCreateModal.value = false;
     fetchEntries();
   } catch (e: any) {
-    const message =
-      e?.response?.data?.message || "Error desconocido al guardar la entrada";
-    // console.error("Error al guardar la entrada:", e);
-    toast.error(message);
+    toast.error(e?.response?.data?.message || "Error al guardar entrada");
   }
-};
+}
 
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleString("es-CO", {
+/* ──────────── utilidades ──────────── */
+function formatDate(str: string) {
+  return new Date(str).toLocaleString("es-CO", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -506,6 +562,7 @@ function formatDate(dateStr: string) {
   });
 }
 
+/* ──────────── inicio ──────────── */
 onMounted(() => {
   fetchEntries();
   fetchSuppliers();
@@ -515,11 +572,8 @@ onMounted(() => {
 <style scoped>
 .modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1050;
 }
 </style>
