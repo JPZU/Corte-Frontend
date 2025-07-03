@@ -441,10 +441,13 @@ async function applyFilters() {
     }
   }
 
-  if (filters.value.supplierId) {
+  /* 1️⃣  filtro por ID de proveedor */
+  if (filters.value.supplierId.trim()) {
     try {
-      const res = await getClothsEntryBySupplierId(filters.value.supplierId);
-      entries.value = res ? [res] : [];
+      const res = await getClothsEntryBySupplierId(
+        filters.value.supplierId.trim()
+      );
+      entries.value = res; // ← asigna directamente el array
       totalPages.value = 1;
     } catch {
       toast.error("Error al filtrar por proveedor");
@@ -452,12 +455,13 @@ async function applyFilters() {
     return;
   }
 
-  if (filters.value.supplierInvoice) {
+  /* 2️⃣  filtro por número de factura */
+  if (filters.value.supplierInvoice.trim()) {
     try {
       const res = await getClothsEntryBySupplierInvoice(
-        filters.value.supplierInvoice
+        filters.value.supplierInvoice.trim()
       );
-      entries.value = res ? [res] : [];
+      entries.value = res; // idem
       totalPages.value = 1;
     } catch {
       toast.error("Error al filtrar por factura");
