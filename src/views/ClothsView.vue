@@ -65,15 +65,6 @@
             placeholder="Nombre"
             required
           />
-          <input
-            v-model.number="formCloth.meters"
-            type="number"
-            class="form-control mb-2"
-            placeholder="Metros"
-            required
-            min="0"
-            step="0.01"
-          />
           <select
             v-model="formCloth.category.categoryId"
             class="form-select mb-2"
@@ -281,9 +272,7 @@ const isEditing = ref(false);
 const formCloth = ref({
   clothId: 0,
   name: "",
-  color: "",
-  meters: null,
-  notes: "",
+  meters: 0,
   category: {
     categoryId: null,
   },
@@ -319,9 +308,7 @@ const openCreateModal = () => {
   formCloth.value = {
     clothId: 0,
     name: "",
-    color: "",
-    meters: null,
-    notes: "",
+    meters: 0,
     category: { categoryId: "" },
     isActive: true,
   };
@@ -364,10 +351,8 @@ const submitCloth = async () => {
     const payload = {
       clothId: formCloth.value.clothId,
       name: formCloth.value.name,
-      color: formCloth.value.color,
       meters: formCloth.value.meters,
       isActive: formCloth.value.isActive,
-      notes: formCloth.value.notes,
       categoryId: formCloth.value.category.categoryId,
     };
 
@@ -432,14 +417,6 @@ const resetFilters = () => {
   };
   filtersApplied.value = false;
   fetchCloths();
-};
-
-const formatPrice = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0, // si no quieres decimales
-  }).format(value);
 };
 
 const formatMeters = (value: number) => {
