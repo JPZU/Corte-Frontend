@@ -96,16 +96,16 @@
               <span v-else class="text-danger fw-bold">Anulada</span>
             </td>
             <td class="text-center">
-              <button class="btn btn-sm btn-info" @click="viewDetail(e)">
-                Ver
-              </button>
-              <button
-                v-if="canEdit && e.approve"
-                class="btn btn-sm btn-danger ms-2"
-                @click="invalidateEntry(e)"
-              >
-                Anular
-              </button>
+              <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-info" @click="viewDetail(e)">Ver</button>
+                <button
+                  v-if="canEdit && e.approve"
+                  class="btn btn-danger"
+                  @click="invalidateEntry(e)"
+                >
+                  Anular
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

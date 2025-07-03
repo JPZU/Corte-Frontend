@@ -140,8 +140,8 @@
 
     <!-- ▸ Tabla -->
     <div class="table-responsive">
-      <table class="table table-hover align-middle shadow-sm">
-        <thead class="table-light">
+      <table class="table table-bordered align-middle">
+        <thead class="table-dark text-center">
           <tr>
             <th>ID Referencia</th>
             <th>Descripción</th>

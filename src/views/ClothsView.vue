@@ -193,16 +193,19 @@
               <strong>Metros:</strong> {{ formatMeters(cloth.meters) }}<br />
             </p>
             <div class="d-flex justify-content-center gap-2">
-              <button
-                class="btn btn-sm btn-warning"
-                @click="openEditModal(cloth.clothId)"
-                v-if="canEdit"
-              >
-                Editar
-              </button>
-              <button class="btn btn-sm btn-info" @click="viewCloth(cloth)">
-                Ver
-              </button>
+              <!-- Acciones en la tarjeta de tela -->
+              <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-info" @click="viewCloth(cloth)">
+                  Ver
+                </button>
+                <button
+                  v-if="canEdit"
+                  class="btn btn-warning"
+                  @click="openEditModal(cloth.clothId)"
+                >
+                  Editar
+                </button>
+              </div>
             </div>
           </div>
         </div>
