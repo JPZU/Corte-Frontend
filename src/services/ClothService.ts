@@ -35,9 +35,14 @@ export async function getClothByCategory(categoryId: number) {
   return response.data;
 }
 
-export async function getByCreatedAtBetween(data: any) {
-  const response = await api.get("/cloths/created-between", data);
-  return response.data;
+export async function getClothsCreatedBetween(
+  startDate: string,
+  endDate: string
+) {
+  const { data } = await api.get("/cloths/created-between", {
+    params: { startDate, endDate },
+  });
+  return data;
 }
 
 export async function getAllClothsPaged(page = 0, size = 16) {

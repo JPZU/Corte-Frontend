@@ -107,16 +107,18 @@
       </button>
     </div>
 
+    <!-- ▸ Filtros -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
         <h5 class="card-title">Filtros de Búsqueda</h5>
+
+        <!-- Fila texto / categoría / estado -->
         <div class="row g-3">
-          <!-- Fila 1 -->
           <div class="col-md-6">
             <input
-              type="text"
-              class="form-control"
               v-model="filters.name"
+              type="text"
+              class="form-control text-uppercase"
               placeholder="🔤 Nombre de la tela"
             />
           </div>
@@ -133,7 +135,6 @@
             </select>
           </div>
 
-          <!-- Fila 2 -->
           <div class="col-md-6">
             <select v-model="filters.status" class="form-select">
               <option value="">📦 Estado</option>
@@ -141,15 +142,33 @@
               <option value="inactive">Inactivos</option>
             </select>
           </div>
-          <div
-            class="col-md-6 text-end d-flex justify-content-end align-items-center gap-2"
-          >
+          <div class="col-md-6 d-flex justify-content-end gap-2">
             <button class="btn btn-primary" @click="applyFilters">
               🔍 Buscar
             </button>
             <button class="btn btn-secondary" @click="resetFilters">
               ✖ Limpiar
             </button>
+          </div>
+        </div>
+
+        <!-- Fila rango de fechas -->
+        <div class="row g-3 mt-2">
+          <div class="col-md-6">
+            <input
+              v-model="dateRange.start"
+              type="date"
+              class="form-control"
+              placeholder="Fecha inicio"
+            />
+          </div>
+          <div class="col-md-6">
+            <input
+              v-model="dateRange.end"
+              type="date"
+              class="form-control"
+              placeholder="Fecha fin"
+            />
           </div>
         </div>
       </div>
@@ -222,135 +241,99 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "@/store/auth";
 import { useToast } from "vue-toastification";
 import {
-  getClothById, // ✅ ESTA LÍNEA
+  getClothById,
   createCloth,
   updateCloth,
   getAllClothsPaged,
   filterCloths,
+  getClothsCreatedBetween, // ← NUEVO
 } from "@/services/ClothService";
 import { getAllCategories } from "@/services/CategoryService";
 import { getAllSuppliers } from "@/services/SupplierService";
 
-const currentPage = ref(0);
-const pageSize = ref(16); // puedes ajustar este valor
-const totalPages = ref(1);
-
-const filtersApplied = ref(false);
-
-const categories = ref<any[]>([]);
-const suppliers = ref<any[]>([]);
-
-const loadCategoriesAndSuppliers = async () => {
-  try {
-    categories.value = await getAllCategories();
-    suppliers.value = await getAllSuppliers();
-  } catch (e) {
-    toast.error("Error al cargar categorías o proveedores");
-  }
-};
-
-const filters = ref({
-  name: "",
-  categoryId: "",
-  status: "", // "active", "inactive"
-});
-
-const showDetailModal = ref(false);
-const selectedCloth = ref<any>(null);
-
+/* ───────────────────────────  estado global  ─────────────────────────── */
 const toast = useToast();
 const authStore = useAuthStore();
-
-const cloths = ref<any[]>([]);
 
 const canCreate = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 const canEdit = ["SUPER_ADMIN", "ADMIN"].includes(authStore.role);
 
+/* ───────────────────────────  paginación base  ───────────────────────── */
+const currentPage = ref(0);
+const pageSize = ref(16);
+const totalPages = ref(1);
+
+/* ───────────────────────────  datos y catálogos  ────────────────────── */
+const cloths = ref<any[]>([]);
+const categories = ref<any[]>([]);
+const suppliers = ref<any[]>([]);
+
+async function loadCategoriesAndSuppliers() {
+  try {
+    categories.value = await getAllCategories();
+    suppliers.value = await getAllSuppliers();
+  } catch {
+    toast.error("Error al cargar categorías o proveedores");
+  }
+}
+
+/* ───────────────────────────  filtros  ──────────────────────────────── */
+const filters = ref({ name: "", categoryId: "", status: "" });
+const dateRange = ref({ start: "", end: "" }); // YYYY-MM-DD
+
+const filtersApplied = ref(false);
+
+/* ───────────────────────────  modales  ───────────────────────────────── */
+const showDetailModal = ref(false);
+const selectedCloth = ref<any>(null);
+
 const showFormModal = ref(false);
 const isEditing = ref(false);
-
 const formCloth = ref({
   clothId: 0,
   name: "",
   meters: 0,
-  category: {
-    categoryId: null,
-  },
+  category: { categoryId: null },
   isActive: true,
 });
 
-const fetchCloths = async () => {
-  try {
-    const res = await getAllClothsPaged(currentPage.value, pageSize.value);
-    cloths.value = res.data;
-    totalPages.value = res.totalPages;
-  } catch (e) {
-    toast.error("Error al cargar las telas");
-  }
-};
+/* ───────────────────────────  CRUD ayudas  ──────────────────────────── */
+function viewCloth(c: any) {
+  selectedCloth.value = c;
+  showDetailModal.value = true;
+}
 
-const goToNextPage = () => {
-  if (currentPage.value < totalPages.value - 1) {
-    currentPage.value++;
-    fetchCloths();
-  }
-};
-
-const goToPreviousPage = () => {
-  if (currentPage.value > 0) {
-    currentPage.value--;
-    fetchCloths();
-  }
-};
-
-const openCreateModal = () => {
+function openCreateModal() {
   isEditing.value = false;
   formCloth.value = {
     clothId: 0,
     name: "",
     meters: 0,
-    category: { categoryId: "" },
+    category: { categoryId: null },
     isActive: true,
   };
   loadCategoriesAndSuppliers();
   showFormModal.value = true;
-};
-
-const openEditModal = async (id: number) => {
-  if (!canEdit) return toast.error("No autorizado para editar");
-  try {
-    const cloth = await getClothById(id);
-    formCloth.value = { ...cloth };
-    isEditing.value = true;
-    await loadCategoriesAndSuppliers();
-    showFormModal.value = true;
-  } catch (e) {
-    toast.error("Error al obtener la tela");
-  }
-};
-
-const viewCloth = (cloth: any) => {
-  selectedCloth.value = cloth;
-  showDetailModal.value = true;
-};
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleString("es-CO", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
-const submitCloth = async () => {
+async function openEditModal(id: number) {
+  if (!canEdit) return toast.error("No autorizado para editar");
+  try {
+    const c = await getClothById(id);
+    formCloth.value = { ...c, category: { categoryId: c.category.categoryId } };
+    isEditing.value = true;
+    loadCategoriesAndSuppliers();
+    showFormModal.value = true;
+  } catch {
+    toast.error("Error al obtener la tela");
+  }
+}
+
+async function submitCloth() {
   try {
     const payload = {
       clothId: formCloth.value.clothId,
-      name: formCloth.value.name,
+      name: formCloth.value.name.trim(),
       meters: formCloth.value.meters,
       isActive: formCloth.value.isActive,
       categoryId: formCloth.value.category.categoryId,
@@ -366,68 +349,119 @@ const submitCloth = async () => {
 
     showFormModal.value = false;
     fetchCloths();
-  } catch (e) {
+  } catch {
     toast.error("Error al guardar la tela");
   }
-};
+}
 
-const applyFilters = async () => {
+/* ───────────────────────────  carga paginada  ───────────────────────── */
+async function fetchCloths(page = currentPage.value) {
   try {
-    // Reiniciar la página a la primera
-    currentPage.value = 0;
+    const res = await getAllClothsPaged(page, pageSize.value);
+    cloths.value = res.data;
+    totalPages.value = res.totalPages;
+    currentPage.value = res.currentPage;
+  } catch {
+    toast.error("Error al cargar las telas");
+  }
+}
 
-    const params: any = {
-      page: currentPage.value,
-      size: pageSize.value,
-    };
+function goToNextPage() {
+  if (currentPage.value < totalPages.value - 1)
+    fetchCloths(currentPage.value + 1);
+}
+function goToPreviousPage() {
+  if (currentPage.value > 0) fetchCloths(currentPage.value - 1);
+}
 
-    // Determinar si se están aplicando filtros
-    filtersApplied.value =
-      !!filters.value.name?.trim() ||
-      !!filters.value.status ||
-      !!filters.value.categoryId;
+/* ───────────────────────────  filtros completos  ────────────────────── */
+async function applyFilters() {
+  currentPage.value = 0;
+  const hasDates = !!dateRange.value.start && !!dateRange.value.end;
 
-    // Agregar los filtros a los parámetros si existen
-    if (filters.value.name?.trim()) {
-      params.name = filters.value.name.trim();
+  /* ——— 1) Rango de fechas activo ——— */
+  if (hasDates) {
+    try {
+      const list = await getClothsCreatedBetween(
+        `${dateRange.value.start}T00:00:00`,
+        `${dateRange.value.end}T23:59:59`
+      );
+
+      const filtered = list.filter((c: any) => {
+        const nameOk = filters.value.name
+          ? c.name
+              .toUpperCase()
+              .includes(filters.value.name.trim().toUpperCase())
+          : true;
+        const catOk = filters.value.categoryId
+          ? c.category.categoryId === Number(filters.value.categoryId)
+          : true;
+        const stateOk = filters.value.status
+          ? c.isActive === (filters.value.status === "active")
+          : true;
+        return nameOk && catOk && stateOk;
+      });
+
+      cloths.value = filtered;
+      totalPages.value = 1;
+      filtersApplied.value = true;
+      return;
+    } catch {
+      toast.error("Error filtrando por fecha");
+      return;
     }
+  }
 
-    if (filters.value.status) {
-      params.isActive = filters.value.status === "active";
-    }
+  /* ——— 2) Sin rango de fechas: usar /filter ——— */
+  const params: any = { page: 0, size: pageSize.value };
+  if (filters.value.name.trim()) params.name = filters.value.name.trim();
+  if (filters.value.categoryId) params.categoryId = filters.value.categoryId;
+  if (filters.value.status) params.isActive = filters.value.status === "active";
 
-    if (filters.value.categoryId) {
-      params.categoryId = filters.value.categoryId;
-    }
+  filtersApplied.value =
+    !!params.name || !!params.categoryId || params.isActive !== undefined;
 
-    // Hacer la solicitud
+  if (!filtersApplied.value) return fetchCloths(0);
+
+  try {
     const res = await filterCloths(params);
     cloths.value = res.data;
     totalPages.value = res.totalPages;
-  } catch (e) {
+  } catch {
     toast.error("Error al aplicar filtros");
   }
-};
+}
 
-const resetFilters = () => {
-  filters.value = {
-    name: "",
-    categoryId: "",
-    status: "",
-  };
+function resetFilters() {
+  filters.value = { name: "", categoryId: "", status: "" };
+  dateRange.value = { start: "", end: "" };
   filtersApplied.value = false;
-  fetchCloths();
-};
+  fetchCloths(0);
+}
 
-const formatMeters = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
+/* ───────────────────────────  helpers visuales  ─────────────────────── */
+function formatDate(str?: string | null) {
+  if (!str) return "—";
+  return new Date(str).toLocaleString("es-CO", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+function formatMeters(v?: number) {
+  return v !== undefined
+    ? new Intl.NumberFormat("es-CO", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(v)
+    : "—";
+}
 
-onMounted(() => {
+/* ───────────────────────────  inicio  ──────────────────────────────── */
+onMounted(async () => {
+  await loadCategoriesAndSuppliers();
   fetchCloths();
-  loadCategoriesAndSuppliers(); // ✅ ESTA LÍNEA ES CLAVE
 });
 </script>
