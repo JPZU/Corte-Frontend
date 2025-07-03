@@ -2,7 +2,7 @@
   <div>
     <h2 class="mb-4">Referencias Registradas</h2>
 
-    <!-- ───────────── Modal DETALLE ───────────── -->
+    <!-- ▸ Modal DETALLE -->
     <div
       v-if="showDetailModal"
       class="modal-backdrop d-flex justify-content-center align-items-center"
@@ -33,7 +33,7 @@
       </div>
     </div>
 
-    <!-- ───────────── Modal CREAR / EDITAR ───────────── -->
+    <!-- ▸ Modal CREAR / EDITAR -->
     <div
       v-if="showFormModal"
       class="modal-backdrop d-flex justify-content-center align-items-center"
@@ -76,17 +76,19 @@
       </div>
     </div>
 
-    <!-- ───────────── Botón CREAR ───────────── -->
+    <!-- ▸ Botón CREAR -->
     <div class="mb-3" v-if="canCreate">
       <button class="btn btn-success" @click="openCreateModal">
         + Crear Referencia
       </button>
     </div>
 
-    <!-- ───────────── Filtros ───────────── -->
+    <!-- ▸ Filtros -->
     <div class="card mb-4 shadow-sm">
       <div class="card-body">
         <h5 class="card-title">Filtros de Búsqueda</h5>
+
+        <!-- Fila texto -->
         <div class="row g-3">
           <div class="col-md-5">
             <input
@@ -113,10 +115,30 @@
             </button>
           </div>
         </div>
+
+        <!-- Fila fechas (solo fecha) -->
+        <div class="row g-3 mt-2">
+          <div class="col-md-5">
+            <input
+              v-model="dateRange.start"
+              type="date"
+              class="form-control"
+              placeholder="Fecha inicio"
+            />
+          </div>
+          <div class="col-md-5">
+            <input
+              v-model="dateRange.end"
+              type="date"
+              class="form-control"
+              placeholder="Fecha fin"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ───────────── Tabla ───────────── -->
+    <!-- ▸ Tabla -->
     <div class="table-responsive">
       <table class="table table-hover align-middle shadow-sm">
         <thead class="table-light">
@@ -163,7 +185,7 @@
       </table>
     </div>
 
-    <!-- ───────────── Paginación ───────────── -->
+    <!-- ▸ Paginación -->
     <div class="d-flex justify-content-center mt-4">
       <button
         class="btn btn-outline-primary me-2"
@@ -198,6 +220,7 @@ import {
   createReference,
   updateReference,
   deleteReference,
+  getReferencesCreatedBetween,
 } from "@/services/ReferenceService";
 
 // ─── tipos ────────────────────────────────────────────
@@ -223,10 +246,11 @@ const currentPage = ref(0);
 const pageSize = ref(16);
 const totalPages = ref(1);
 
-// ─── filtros locales ─────────────────────────────────
+// ─── filtros ─────────────────────────────────────────
 const filters = ref({ referenceId: "", description: "" });
+const dateRange = ref({ start: "", end: "" }); // YYYY-MM-DD
 const filtersApplied = ref(false);
-const fullList = ref<Reference[]>([]); // lista completa para filtros
+const fullList = ref<Reference[]>([]); // cache para filtros locales
 
 // ─── cargar página del servidor ──────────────────────
 async function fetchPage(p = 0) {
@@ -249,23 +273,53 @@ function goToPreviousPage() {
   if (currentPage.value > 0) fetchPage(currentPage.value - 1);
 }
 
-// ─── filtros locales (requiere lista completa) ───────
+// ─── paginación local ────────────────────────────────
 function localPaginate(list: Reference[]) {
   totalPages.value = Math.max(1, Math.ceil(list.length / pageSize.value));
   const start = currentPage.value * pageSize.value;
   references.value = list.slice(start, start + pageSize.value);
 }
 
+// ─── filtros ─────────────────────────────────────────
 async function applyFilters() {
   currentPage.value = 0;
 
   const idF = filters.value.referenceId.trim().toUpperCase();
   const descF = filters.value.description.trim().toLowerCase();
+  const hasDates = !!dateRange.value.start && !!dateRange.value.end;
 
+  // 1) FILTRO POR FECHAS
+  if (hasDates) {
+    // Construir LocalDateTime 00:00:00 y 23:59:59
+    const startDate = `${dateRange.value.start}T00:00:00`;
+    const endDate = `${dateRange.value.end}T23:59:59`;
+
+    try {
+      const list = await getReferencesCreatedBetween(startDate, endDate);
+
+      const filtered = list.filter((r) => {
+        const idMatch = idF ? r.referenceId.includes(idF) : true;
+        const descMatch = descF
+          ? (r.description ?? "").toLowerCase().includes(descF)
+          : true;
+        return idMatch && descMatch;
+      });
+
+      filtersApplied.value = true;
+      fullList.value = filtered;
+      localPaginate(fullList.value);
+      return;
+    } catch {
+      toast.error("Error filtrando por rango de fechas");
+      return;
+    }
+  }
+
+  // 2) SOLO FILTROS DE TEXTO
   if (!idF && !descF) {
     filtersApplied.value = false;
     fullList.value = [];
-    await fetchPage(0);
+    fetchPage(0);
     return;
   }
 
@@ -289,17 +343,17 @@ async function applyFilters() {
 
 function resetFilters() {
   filters.value = { referenceId: "", description: "" };
+  dateRange.value = { start: "", end: "" };
   filtersApplied.value = false;
   fullList.value = [];
   fetchPage(0);
 }
 
-// ─── modales y CRUD ──────────────────────────────────
+// ─── modales y CRUD (sin cambios) ────────────────────
 const showDetailModal = ref(false);
 const selectedRef = ref<Reference | null>(null);
-
-function viewReference(refObj: Reference) {
-  selectedRef.value = refObj;
+function viewReference(r: Reference) {
+  selectedRef.value = r;
   showDetailModal.value = true;
 }
 
@@ -377,5 +431,5 @@ onMounted(() => fetchPage(0));
 </script>
 
 <style scoped>
-/* Ajustes visuales opcionales */
+/* Estilos finos opcionales */
 </style>
