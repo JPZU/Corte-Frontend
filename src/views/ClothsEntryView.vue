@@ -87,7 +87,15 @@
           >
             <td>{{ e.clothEntryId }}</td>
             <td>{{ e.supplierInvoice }}</td>
-            <td>{{ e.supplier?.name }}</td>
+            <!-- PROVEEDOR -->
+            <td>
+              {{
+                e.supplier
+                  ? `${e.supplier.name} (ID: ${e.supplier.supplierId})`
+                  : "—"
+              }}
+            </td>
+
             <td>{{ e.user?.name }}</td>
             <td>{{ e.notes }}</td>
             <td>{{ formatDate(e.createdAt) }}</td>
