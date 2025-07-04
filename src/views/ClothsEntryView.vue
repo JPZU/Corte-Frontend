@@ -20,7 +20,7 @@
               v-model="filters.supplierId"
               type="text"
               class="form-control"
-              placeholder="ID Proveedor"
+              placeholder="🔤 ID Proveedor"
             />
           </div>
           <div class="col-md-4">
@@ -28,7 +28,7 @@
               v-model="filters.supplierInvoice"
               type="text"
               class="form-control"
-              placeholder="Número de factura"
+              placeholder="🔤 Número de factura"
             />
           </div>
         </div>
